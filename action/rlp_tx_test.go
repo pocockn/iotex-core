@@ -245,3 +245,95 @@ func convertToNativeProto(tx *types.Transaction, isTsf bool) *iotextypes.ActionC
 	}
 	return &pb
 }
+
+func TestCorruptedTestnetRlpTx(t *testing.T) {
+	require := require.New(t)
+	// register the extern chain ID
+	config.SetEVMNetworkID(4690)
+
+	var (
+		act  = iotextypes.Action{}
+		selp SealedEnvelope
+	)
+	for _, v := range []struct {
+		txHash, txBytes, rawHash, txSig     string
+		sender, amount, recipient, gasPrice string
+		nonce, gasLimit                     uint64
+	}{
+		{
+			"861ce319a8d467764f5b63096c58c6dbe30b47d1bcc393c13692a08bfd56ceed",
+			"0a4910011888a401220d3130303030303030303030303052320a0531652b32311229696f31396d6668766c3875686e3435396c366c7865706466686d30733564656775726e39703977733712410437ad28681a606ff0b212b932b7eea10331aa66e1c9ec193453d2f8330626f4f18a3fcfe4744e0070beb97ccc7cc8cd0c4f6f8722d5e550781daebaf9e92e3fda1a41c82981e9fd6f512903bcb75e9c46956a69c67e4645ea3701de0e2283aaaa442933f44a1c6e603e07b075bc819323311fbb99161bec3734db859b46e5e0d8d3511b2001",
+			"db1de85a4d152249c4038576c503216809c59f32420713333b9f5be394341945",
+			"c82981e9fd6f512903bcb75e9c46956a69c67e4645ea3701de0e2283aaaa442933f44a1c6e603e07b075bc819323311fbb99161bec3734db859b46e5e0d8d3511b",
+			"io1y3lhu7mmzgl3ullyjrz5f69rkkew4wqu58m9n0",
+			"1e+21",
+			"io19mfhvl8uhn459l6lxepdfhm0s5degurn9p9ws7",
+			"1000000000000",
+			1, 21000,
+		},
+		{
+			"dd6c6d4ffd0c2d99b985d9c995bb1b7b8771edcdd9d7c5f96280f22074cdc942",
+			"0a4910031888a401220d3130303030303030303030303052320a0531652b32311229696f31396d6668766c3875686e3435396c366c7865706466686d30733564656775726e39703977733712410437ad28681a606ff0b212b932b7eea10331aa66e1c9ec193453d2f8330626f4f18a3fcfe4744e0070beb97ccc7cc8cd0c4f6f8722d5e550781daebaf9e92e3fda1a41b69c99bc7d7e7f62747f915206070afec40e78667218bb2d47696780fe90330e7dca8ff21b56889bdffd55f23052328656fb884797f1bcb1fe6738d310d7d46f1b2001",
+			"26ccd9b5f09caf45cf860ea96f9f8c513e6781aa3d6ef3348a51a959f26456f5",
+			"b69c99bc7d7e7f62747f915206070afec40e78667218bb2d47696780fe90330e7dca8ff21b56889bdffd55f23052328656fb884797f1bcb1fe6738d310d7d46f1b",
+			"io1y3lhu7mmzgl3ullyjrz5f69rkkew4wqu58m9n0",
+			"1e+21",
+			"io19mfhvl8uhn459l6lxepdfhm0s5degurn9p9ws7",
+			"1000000000000",
+			3, 21000,
+		},
+		{
+			"3a29742229044b83595bf815c72e66790faf40021e6c3304e94829dc8011a463",
+			"0a4910051888a401220d3130303030303030303030303052320a0531652b32311229696f31396d6668766c3875686e3435396c366c7865706466686d30733564656775726e39703977733712410437ad28681a606ff0b212b932b7eea10331aa66e1c9ec193453d2f8330626f4f18a3fcfe4744e0070beb97ccc7cc8cd0c4f6f8722d5e550781daebaf9e92e3fda1a417d170ae4c369e8cbbdcb1b6e78acc8f39e9c7160778a471d00e2ef583abb47a50264fbde98185c528774b1e8ec95cdc84825a9169dfe70d78a39f0859de448bf1b2001",
+			"def5f601d0ae1d44ee8ecbbd5a8421815ea6e207ed978f6dd8b300abf3c62bb9",
+			"7d170ae4c369e8cbbdcb1b6e78acc8f39e9c7160778a471d00e2ef583abb47a50264fbde98185c528774b1e8ec95cdc84825a9169dfe70d78a39f0859de448bf1b",
+			"io1y3lhu7mmzgl3ullyjrz5f69rkkew4wqu58m9n0",
+			"1e+21",
+			"io19mfhvl8uhn459l6lxepdfhm0s5degurn9p9ws7",
+			"1000000000000",
+			5, 21000,
+		},
+	} {
+		// verify protobuf data
+		txBytes, _ := hex.DecodeString(v.txBytes)
+		require.NoError(proto.Unmarshal(txBytes, &act))
+		core := act.Core
+		require.Zero(core.Version)
+		require.Equal(v.nonce, core.Nonce)
+		require.Equal(v.gasLimit, core.GasLimit)
+		require.Equal(v.gasPrice, core.GasPrice)
+		require.Zero(core.ChainID)
+		tsf := core.GetTransfer()
+		require.NotNil(tsf)
+		require.Equal(v.amount, tsf.Amount)
+		require.Equal(v.recipient, tsf.Recipient)
+		pk, err := crypto.BytesToPublicKey(act.SenderPubKey)
+		require.NoError(err)
+		addr, err := address.FromBytes(pk.Hash())
+		require.Equal(v.sender, addr.String())
+		recvSig, _ := hex.DecodeString(v.txSig)
+		require.Equal(recvSig, act.Signature)
+		require.Equal(iotextypes.Encoding_ETHEREUM_RLP, act.Encoding)
+
+		// verify selp data
+		require.NoError(selp.LoadProto(&act))
+		require.Equal(recvSig, selp.signature)
+		elpHash, err := selp.envelopeHash()
+		require.NoError(err)
+		recvRawHash, _ := hex.DecodeString(v.rawHash)
+		require.Equal(recvRawHash, elpHash[:])
+		selpHash := selp.Hash()
+		recvTxHash, _ := hex.DecodeString(v.txHash)
+		require.Equal(recvTxHash, selpHash[:])
+		require.Error(Verify(selp))
+
+		// verify embedded tx
+		tx, ok := selp.Envelope.Action().(rlpTransaction)
+		require.True(ok)
+		require.Equal(v.nonce, tx.Nonce())
+		require.Equal(v.gasPrice, tx.GasPrice().String())
+		require.Equal(v.gasLimit, tx.GasLimit())
+		require.Equal(v.recipient, tx.Recipient())
+		require.NotEqual(v.amount, tx.Amount().String())
+	}
+}
