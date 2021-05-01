@@ -36,6 +36,7 @@ import (
 	"github.com/iotexproject/iotex-core/blockchain"
 	"github.com/iotexproject/iotex-core/blockchain/block"
 	"github.com/iotexproject/iotex-core/blockchain/blockdao"
+	"github.com/iotexproject/iotex-core/blockchain/filedao"
 	"github.com/iotexproject/iotex-core/blockindex"
 	"github.com/iotexproject/iotex-core/blocksync"
 	"github.com/iotexproject/iotex-core/config"
@@ -55,6 +56,7 @@ type ChainService struct {
 	chain             blockchain.Blockchain
 	factory           factory.Factory
 	blockdao          blockdao.BlockDAO
+	blockfetch        filedao.FileDAO
 	electionCommittee committee.Committee
 	// TODO: explorer dependency deleted at #1085, need to api related params
 	api                *api.Server
@@ -397,12 +399,19 @@ func New(
 		}
 	}
 
+	cfg.DB.DbPath = "./data/local.db"
+	fd, err := filedao.NewFileDAO(cfg.DB)
+	if err != nil {
+		return nil, err
+	}
+
 	return &ChainService{
 		actpool:            actPool,
 		chain:              chain,
 		factory:            sf,
 		blockdao:           dao,
 		blocksync:          bs,
+		blockfetch:         fd,
 		consensus:          consensus,
 		electionCommittee:  electionCommittee,
 		indexBuilder:       indexBuilder,
@@ -416,11 +425,6 @@ func New(
 
 // Start starts the server
 func (cs *ChainService) Start(ctx context.Context) error {
-	if cs.electionCommittee != nil {
-		if err := cs.electionCommittee.Start(ctx); err != nil {
-			return errors.Wrap(err, "error when starting election committee")
-		}
-	}
 	if cs.candidateIndexer != nil {
 		if err := cs.candidateIndexer.Start(ctx); err != nil {
 			return errors.Wrap(err, "error when starting candidate indexer")
@@ -434,29 +438,26 @@ func (cs *ChainService) Start(ctx context.Context) error {
 	if err := cs.chain.Start(ctx); err != nil {
 		return errors.Wrap(err, "error when starting blockchain")
 	}
-	if err := cs.consensus.Start(ctx); err != nil {
-		return errors.Wrap(err, "error when starting consensus")
-	}
 	if cs.indexBuilder != nil {
 		if err := cs.indexBuilder.Start(ctx); err != nil {
 			return errors.Wrap(err, "error when starting index builder")
 		}
 	}
-	if err := cs.blocksync.Start(ctx); err != nil {
-		return errors.Wrap(err, "error when starting blocksync")
-	}
-	// TODO: explorer dependency deleted at #1085, need to revive by migrating to api
-	if cs.api != nil {
-		if err := cs.api.Start(); err != nil {
-			return errors.Wrap(err, "err when starting API server")
+	if cs.blockfetch != nil {
+		if err := cs.blockfetch.Start(ctx); err != nil {
+			return errors.Wrap(err, "error when starting block fetch")
 		}
 	}
-
-	return nil
+	return cs.fetchCommit(0)
 }
 
 // Stop stops the server
 func (cs *ChainService) Stop(ctx context.Context) error {
+	if cs.blockfetch != nil {
+		if err := cs.blockfetch.Stop(ctx); err != nil {
+			return errors.Wrap(err, "error when stopping block fetch")
+		}
+	}
 	if cs.indexBuilder != nil {
 		if err := cs.chain.RemoveSubscriber(cs.indexBuilder); err != nil {
 			return errors.Wrap(err, "failed to unsubscribe indexBuilder")
@@ -464,18 +465,6 @@ func (cs *ChainService) Stop(ctx context.Context) error {
 		if err := cs.indexBuilder.Stop(ctx); err != nil {
 			return errors.Wrap(err, "error when stopping index builder")
 		}
-	}
-	// TODO: explorer dependency deleted at #1085, need to revive by migrating to api
-	if cs.api != nil {
-		if err := cs.api.Stop(); err != nil {
-			return errors.Wrap(err, "error when stopping API server")
-		}
-	}
-	if err := cs.consensus.Stop(ctx); err != nil {
-		return errors.Wrap(err, "error when stopping consensus")
-	}
-	if err := cs.blocksync.Stop(ctx); err != nil {
-		return errors.Wrap(err, "error when stopping blocksync")
 	}
 	if err := cs.chain.Stop(ctx); err != nil {
 		return errors.Wrap(err, "error when stopping blockchain")
@@ -490,9 +479,55 @@ func (cs *ChainService) Stop(ctx context.Context) error {
 			return errors.Wrap(err, "error when stopping staking candidates indexer")
 		}
 	}
-	if cs.electionCommittee != nil {
-		return cs.electionCommittee.Stop(ctx)
+	return nil
+}
+
+func (cs *ChainService) fetchCommit(end uint64) error {
+	h, err := cs.blockdao.Height()
+	if err != nil {
+		log.L().Info("failed to open dao")
+		return err
 	}
+	log.L().Info("open dao", zap.Uint64("height", h))
+
+	fh, err := cs.blockfetch.Height()
+	if err != nil {
+		log.L().Info("failed to open block fetch")
+		return err
+	}
+	if fh <= h {
+		panic("fetch height <= blockdao")
+	}
+	log.L().Info("open block fetch", zap.Uint64("height", fh))
+	if end == 0 {
+		end = fh
+	}
+
+	ctx, err := cs.Blockchain().Context()
+	if err != nil {
+		log.L().Error(err.Error())
+		return err
+	}
+	for h++; h <= end; h++ {
+		blk, err := cs.blockfetch.GetBlockByHeight(h)
+		if err != nil {
+			log.L().Error("failed to getBlock", zap.Uint64("height", h), zap.String("error", err.Error()))
+			return err
+		}
+		for i := 0; i < 10; i++ {
+			if err = cs.blockdao.PutBlock(ctx, blk); err == nil {
+				break
+			}
+		}
+		if err != nil {
+			log.L().Error("failed to commitBlock", zap.Uint64("height", h), zap.String("error", err.Error()))
+			return err
+		}
+		if h%10000 == 0 {
+			log.L().Info("committed block", zap.Uint64("height", blk.Height()))
+		}
+	}
+	log.L().Info("committed to", zap.Uint64("height", end))
 	return nil
 }
 
