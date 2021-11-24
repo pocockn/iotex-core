@@ -1225,7 +1225,7 @@ func (core *coreService) reverseActionsInBlock(blk *block.Block, reverseStart, c
 }
 
 // LogsInBlock filter logs in the block x
-func (core *coreService) LogsInBlock(filter *logfilter.LogFilter, blockNumber uint64) ([]*iotextypes.Log, error) {
+func (core *coreService) LogsInBlock(filter *logfilter.LogFilter, blockNumber uint64, fixTxLogIndex bool) ([]*iotextypes.Log, error) {
 	logBloomFilter, err := core.bfIndexer.BlockFilterByHeight(blockNumber)
 	if err != nil {
 		return nil, err
@@ -1245,6 +1245,20 @@ func (core *coreService) LogsInBlock(filter *logfilter.LogFilter, blockNumber ui
 		return nil, err
 	}
 
+	if fixTxLogIndex {
+		blk, err := core.dao.GetBlockByHeight(blockNumber)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		if blk.Receipts, err = core.dao.GetReceipts(blockNumber); err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		txIndexMap, logIndexMap, err := blk.TxLogIndexMap()
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return filter.MatchLogsWithIndexFix(receipts, h, txIndexMap, logIndexMap), nil
+	}
 	return filter.MatchLogs(receipts, h), nil
 }
 
@@ -1269,7 +1283,7 @@ func (core *coreService) LogsInRange(filter *logfilter.LogFilter, start, end, pa
 	}
 	logs := []*iotextypes.Log{}
 	for _, i := range blockNumbers {
-		logsInBlock, err := core.LogsInBlock(filter, i)
+		logsInBlock, err := core.LogsInBlock(filter, i, !core.cfg.Genesis.IsMidway(i))
 		if err != nil {
 			return nil, err
 		}

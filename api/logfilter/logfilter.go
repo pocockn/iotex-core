@@ -75,6 +75,25 @@ func (l *LogFilter) Exit() {
 	l.errChan <- nil
 }
 
+// MatchLogsWithIndexFix returns matching logs in a given block with correct index
+func (l *LogFilter) MatchLogsWithIndexFix(receipts []*action.Receipt, blkHash hash.Hash256, txMap, logMap map[hash.Hash256]uint32) []*iotextypes.Log {
+	var logs []*iotextypes.Log
+	for _, r := range receipts {
+		txIndex := txMap[r.ActionHash]
+		logIndex := logMap[r.ActionHash]
+		for i, v := range r.Logs() {
+			log := v.ConvertToLogPb()
+			if l.match(log) {
+				log.BlkHash = blkHash[:]
+				log.Index = logIndex + uint32(i)
+				log.TxIndex = txIndex
+				logs = append(logs, log)
+			}
+		}
+	}
+	return logs
+}
+
 // MatchLogs returns matching logs in a given block
 func (l *LogFilter) MatchLogs(receipts []*action.Receipt, blkHash hash.Hash256) []*iotextypes.Log {
 	var logs []*iotextypes.Log

@@ -49,7 +49,7 @@ type (
 		Data               []byte
 		BlockHeight        uint64
 		ActionHash         hash.Hash256
-		Index              uint
+		Index, TxIndex     uint32
 		NotFixTopicCopyBug bool
 	}
 
@@ -180,7 +180,8 @@ func (log *Log) ConvertToLogPb() *iotextypes.Log {
 	l.Data = log.Data
 	l.BlkHeight = log.BlockHeight
 	l.ActHash = log.ActionHash[:]
-	l.Index = uint32(log.Index)
+	l.Index = log.Index
+	l.TxIndex = log.TxIndex
 	return l
 }
 
@@ -195,7 +196,8 @@ func (log *Log) ConvertFromLogPb(pbLog *iotextypes.Log) {
 	log.Data = pbLog.GetData()
 	log.BlockHeight = pbLog.GetBlkHeight()
 	copy(log.ActionHash[:], pbLog.GetActHash())
-	log.Index = uint(pbLog.GetIndex())
+	log.Index = pbLog.GetIndex()
+	log.TxIndex = pbLog.GetTxIndex()
 }
 
 // Serialize returns a serialized byte stream for the Log

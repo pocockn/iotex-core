@@ -38,6 +38,9 @@ func TestConvert(t *testing.T) {
 	testLog.Topics = topics
 	testLog.NotFixTopicCopyBug = true
 	receipt := &Receipt{1, 1, hash.ZeroHash256, 1, "test", []*Log{testLog}, nil, "balance not enough"}
+	b, err := testLog.Serialize()
+	require.NoError(err)
+	require.Equal("0a01311220f3d5be8078979e86feb3352f75d1ca612ef1b2a9f41e12aab821350f87fce8ca1220f3d5be8078979e86feb3352f75d1ca612ef1b2a9f41e12aab821350f87fce8ca1220f3d5be8078979e86feb3352f75d1ca612ef1b2a9f41e12aab821350f87fce8ca1a196364303764386137343137396530333266303330643932343420012a2000000000000000000000000000000000000000000000000000000000000000003001", hex.EncodeToString(b))
 
 	typeReceipt := receipt.ConvertToReceiptPb()
 	require.NotNil(typeReceipt)

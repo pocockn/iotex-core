@@ -29,6 +29,16 @@ import (
 	"github.com/iotexproject/iotex-proto/golang/iotextypes"
 )
 
+func newTestLog() *action.Log {
+	return &action.Log{
+		Address:     "1",
+		Data:        []byte("cd07d8a74179e032f030d9244"),
+		BlockHeight: 1,
+		ActionHash:  hash.ZeroHash256,
+		Index:       1,
+	}
+}
+
 func TestMerkle(t *testing.T) {
 	require := require.New(t)
 
@@ -73,7 +83,44 @@ func TestMerkle(t *testing.T) {
 		require.Equal(hex.EncodeToString(h[:]), hashes[i])
 	}
 
-	t.Log("Merkle root match pass\n")
+	// test index map
+	txMap, logMap, err := block.TxLogIndexMap()
+	require.NoError(err)
+	require.Equal(5, len(txMap))
+	for _, v := range logMap {
+		require.Zero(v)
+	}
+	h0 := selp0.Hash()
+	h1 := selp1.Hash()
+	h2 := selp2.Hash()
+	h3 := selp3.Hash()
+	h4 := selp4.Hash()
+	l0, l1, l2 := newTestLog(), newTestLog(), newTestLog()
+	block.Receipts = []*action.Receipt{
+		(&action.Receipt{ActionHash: h0}).AddLogs(l0, l1, l2),
+		(&action.Receipt{ActionHash: h1}).AddLogs(l0, l1, l2),
+		(&action.Receipt{ActionHash: h3}).AddLogs(l0, l1),
+		(&action.Receipt{ActionHash: h0}).AddLogs(l0, l1),
+		{ActionHash: h1},
+	}
+	txMap, logMap, err = block.TxLogIndexMap()
+	require.NoError(err)
+	require.Equal(5, len(txMap))
+	require.Equal(5, len(logMap))
+
+	for _, v := range []struct {
+		h                 hash.Hash256
+		txIndex, logIndex uint32
+	}{
+		{h0, 0, 0},
+		{h1, 1, 5},
+		{h2, 2, 8},
+		{h3, 3, 8},
+		{h4, 4, 10},
+	} {
+		require.Equal(v.txIndex, txMap[v.h])
+		require.Equal(v.logIndex, logMap[v.h])
+	}
 }
 
 func TestConvertFromBlockPb(t *testing.T) {

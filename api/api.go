@@ -714,10 +714,8 @@ func (api *Server) GetLogs(
 		if err != nil {
 			return nil, status.Error(codes.InvalidArgument, "invalid block hash")
 		}
-		logs, err = api.getLogsInBlock(logfilter.NewLogFilter(in.GetFilter(), nil, nil), startBlock)
-		if err != nil {
-			return nil, err
-		}
+		logs, err = api.getLogsInBlock(logfilter.NewLogFilter(in.GetFilter(), nil, nil),
+			startBlock, !api.cfg.Genesis.IsMidway(startBlock))
 	case in.GetByRange() != nil:
 		req := in.GetByRange()
 		startBlock := req.GetFromBlock()
@@ -1474,7 +1472,7 @@ func (api *Server) reverseActionsInBlock(blk *block.Block, reverseStart, count u
 	return res
 }
 
-func (api *Server) getLogsInBlock(filter *logfilter.LogFilter, blockNumber uint64) ([]*iotextypes.Log, error) {
+func (api *Server) getLogsInBlock(filter *logfilter.LogFilter, blockNumber uint64, fixTxLogIndex bool) ([]*iotextypes.Log, error) {
 	logBloomFilter, err := api.bfIndexer.BlockFilterByHeight(blockNumber)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -1493,6 +1491,20 @@ func (api *Server) getLogsInBlock(filter *logfilter.LogFilter, blockNumber uint6
 		return nil, status.Error(codes.InvalidArgument, err.Error())
 	}
 
+	if fixTxLogIndex {
+		blk, err := api.dao.GetBlockByHeight(blockNumber)
+		if err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		if blk.Receipts, err = api.dao.GetReceipts(blockNumber); err != nil {
+			return nil, status.Error(codes.NotFound, err.Error())
+		}
+		txIndexMap, logIndexMap, err := blk.TxLogIndexMap()
+		if err != nil {
+			return nil, status.Error(codes.InvalidArgument, err.Error())
+		}
+		return filter.MatchLogsWithIndexFix(receipts, h, txIndexMap, logIndexMap), nil
+	}
 	return filter.MatchLogs(receipts, h), nil
 }
 
@@ -1512,7 +1524,7 @@ func (api *Server) getLogsInRange(filter *logfilter.LogFilter, start, end, pagin
 		return nil, err
 	}
 	for _, i := range blockNumbers {
-		logsInBlock, err := api.getLogsInBlock(filter, i)
+		logsInBlock, err := api.getLogsInBlock(filter, i, !api.cfg.Genesis.IsMidway(i))
 		if err != nil {
 			return nil, err
 		}

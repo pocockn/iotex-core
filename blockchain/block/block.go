@@ -173,3 +173,20 @@ func (b *Block) ActionHashs() []string {
 	}
 	return actHash
 }
+
+// TxLogIndexMap returns transaction and starting log index
+func (b *Block) TxLogIndexMap() (map[hash.Hash256]uint32, map[hash.Hash256]uint32, error) {
+	txMap, LogMap := make(map[hash.Hash256]uint32), make(map[hash.Hash256]uint32)
+	for _, r := range b.Receipts {
+		LogMap[r.ActionHash] += uint32(len(r.Logs()))
+	}
+	var startLog uint32
+	for i, a := range b.Actions {
+		h, _ := a.Hash()
+		txMap[h] = uint32(i)
+		logCount := LogMap[h]
+		LogMap[h] = startLog
+		startLog += logCount
+	}
+	return txMap, LogMap, nil
+}
