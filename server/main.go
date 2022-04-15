@@ -164,6 +164,10 @@ func main() {
 		}
 	}
 
+	// test crashlog
+	a, b := 10, 0
+	a = a / b
+
 	itx.StartServer(ctx, svr, probeSvr, cfg)
 	close(stopped)
 	<-livenessCtx.Done()
