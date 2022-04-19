@@ -460,10 +460,14 @@ func (sdb *stateDB) State(s interface{}, opts ...protocol.StateOption) (uint64, 
 
 // State returns a set of states in the state factory
 func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator, error) {
+	_, span := tracer.NewSpan(context.Background(), "stateDB.State")
+	defer span.End()
+	span.AddEvent("processOptions")
 	cfg, err := processOptions(opts...)
 	if err != nil {
 		return 0, nil, err
 	}
+	span.AddEvent("sdb.state")
 	sdb.mutex.RLock()
 	defer sdb.mutex.RUnlock()
 	if cfg.Key != nil {
@@ -527,6 +531,9 @@ func (sdb *stateDB) flusherOptions(ctx context.Context, height uint64) []db.KVSt
 }
 
 func (sdb *stateDB) state(ns string, addr []byte, s interface{}) error {
+	_, span := tracer.NewSpan(context.Background(), "stateDB.state")
+	defer span.End()
+	span.AddEvent("dao.Get")
 	data, err := sdb.dao.Get(ns, addr)
 	if err != nil {
 		if errors.Cause(err) == db.ErrNotExist {
@@ -534,6 +541,7 @@ func (sdb *stateDB) state(ns string, addr []byte, s interface{}) error {
 		}
 		return errors.Wrapf(err, "error when getting the state of %x", addr)
 	}
+	span.AddEvent("state.Deserialize")
 	if err := state.Deserialize(s, data); err != nil {
 		return errors.Wrapf(err, "error when deserializing state data into %T", s)
 	}
