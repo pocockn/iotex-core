@@ -24,6 +24,7 @@ import (
 
 	"github.com/iotexproject/iotex-core/action"
 	"github.com/iotexproject/iotex-core/pkg/log"
+	"github.com/iotexproject/iotex-core/pkg/recovery"
 )
 
 const (
@@ -136,6 +137,11 @@ func NewWeb3Server(core CoreService, httpPort int, cacheURL string, queryLimit u
 // Start starts the API server
 func (svr *Web3Server) Start(_ context.Context) error {
 	go func() {
+		defer func() {
+			if r := recover(); r != nil {
+				recovery.CrashLog(r, "/var/log")
+			}
+		}()
 		if err := svr.web3Server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			log.L().Fatal("Node failed to serve.", zap.Error(err))
 		}
