@@ -467,7 +467,6 @@ func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator
 	if err != nil {
 		return 0, nil, err
 	}
-	span.AddEvent("sdb.state")
 	sdb.mutex.RLock()
 	defer sdb.mutex.RUnlock()
 	if cfg.Key != nil {
@@ -478,6 +477,7 @@ func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator
 			return true
 		}
 	}
+	span.AddEvent("dao.Filter")
 	_, values, err := sdb.dao.Filter(cfg.Namespace, cfg.Cond, cfg.MinKey, cfg.MaxKey)
 	if err != nil {
 		if errors.Cause(err) == db.ErrNotExist || errors.Cause(err) == db.ErrBucketNotExist {
@@ -485,7 +485,7 @@ func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator
 		}
 		return sdb.currentChainHeight, nil, err
 	}
-
+	span.AddEvent("state.NewIterator")
 	return sdb.currentChainHeight, state.NewIterator(values), nil
 }
 
