@@ -226,7 +226,7 @@ func TestProtocol_Handle(t *testing.T) {
 	registry := protocol.NewRegistry()
 	sm := mock_chainmanager.NewMockStateManager(ctrl)
 	cb := batch.NewCachedBatch()
-	sm.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(
+	sm.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 			cfg, err := protocol.CreateStateConfig(opts...)
 			if err != nil {

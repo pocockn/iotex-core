@@ -66,7 +66,7 @@ func initConstructStakingCommittee(ctrl *gomock.Controller) (Protocol, context.C
 	sm := mock_chainmanager.NewMockStateManager(ctrl)
 	committee := mock_committee.NewMockCommittee(ctrl)
 	cb := batch.NewCachedBatch()
-	sm.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(
+	sm.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 			cfg, err := protocol.CreateStateConfig(opts...)
 			if err != nil {

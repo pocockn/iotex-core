@@ -33,7 +33,7 @@ import (
 func initMockStateManager(ctrl *gomock.Controller) (*mock_chainmanager.MockStateManager, error) {
 	sm := mock_chainmanager.NewMockStateManager(ctrl)
 	cb := batch.NewCachedBatch()
-	sm.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(
+	sm.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
 		func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 			cfg, err := protocol.CreateStateConfig(opts...)
 			if err != nil {
@@ -743,7 +743,7 @@ func TestGetBalanceOnError(t *testing.T) {
 		errors.New("other error"),
 	}
 	for _, err := range errs {
-		sm.EXPECT().State(gomock.Any(), gomock.Any()).Return(uint64(0), err).Times(1)
+		sm.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).Return(uint64(0), err).Times(1)
 		addr := common.HexToAddress("test address")
 		stateDB := NewStateDBAdapter(
 			sm,
