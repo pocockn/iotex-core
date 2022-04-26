@@ -448,21 +448,22 @@ func (sdb *stateDB) DeleteTipBlock(_ *block.Block) error {
 }
 
 // State returns a confirmed state in the state factory
-func (sdb *stateDB) State(s interface{}, opts ...protocol.StateOption) (uint64, error) {
+func (sdb *stateDB) State(ctx context.Context, s interface{}, opts ...protocol.StateOption) (uint64, error) {
+	ctx, span := tracer.NewSpan(ctx, "stateDB.State")
+	defer span.End()
+	span.AddEvent("processOptions")
 	cfg, err := processOptions(opts...)
 	if err != nil {
 		return 0, err
 	}
 	sdb.mutex.RLock()
 	defer sdb.mutex.RUnlock()
-	return sdb.currentChainHeight, sdb.state(cfg.Namespace, cfg.Key, s)
+	span.AddEvent("sdb.state")
+	return sdb.currentChainHeight, sdb.state(ctx, cfg.Namespace, cfg.Key, s)
 }
 
 // State returns a set of states in the state factory
 func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator, error) {
-	_, span := tracer.NewSpan(context.Background(), "stateDB.State")
-	defer span.End()
-	span.AddEvent("processOptions")
 	cfg, err := processOptions(opts...)
 	if err != nil {
 		return 0, nil, err
@@ -477,7 +478,6 @@ func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator
 			return true
 		}
 	}
-	span.AddEvent("dao.Filter")
 	_, values, err := sdb.dao.Filter(cfg.Namespace, cfg.Cond, cfg.MinKey, cfg.MaxKey)
 	if err != nil {
 		if errors.Cause(err) == db.ErrNotExist || errors.Cause(err) == db.ErrBucketNotExist {
@@ -485,7 +485,6 @@ func (sdb *stateDB) States(opts ...protocol.StateOption) (uint64, state.Iterator
 		}
 		return sdb.currentChainHeight, nil, err
 	}
-	span.AddEvent("state.NewIterator")
 	return sdb.currentChainHeight, state.NewIterator(values), nil
 }
 
@@ -530,8 +529,8 @@ func (sdb *stateDB) flusherOptions(ctx context.Context, height uint64) []db.KVSt
 	)
 }
 
-func (sdb *stateDB) state(ns string, addr []byte, s interface{}) error {
-	_, span := tracer.NewSpan(context.Background(), "stateDB.state")
+func (sdb *stateDB) state(ctx context.Context, ns string, addr []byte, s interface{}) error {
+	_, span := tracer.NewSpan(ctx, "stateDB.state")
 	defer span.End()
 	span.AddEvent("dao.Get")
 	data, err := sdb.dao.Get(ns, addr)

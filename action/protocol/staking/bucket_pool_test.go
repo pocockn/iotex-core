@@ -8,6 +8,7 @@ package staking
 
 import (
 	"bytes"
+	"context"
 	"math/big"
 	"testing"
 	"time"
@@ -165,7 +166,7 @@ func TestBucketPool(t *testing.T) {
 
 	// verify state has been created successfully
 	var b totalAmount
-	_, err = sm.State(&b, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
+	_, err = sm.State(context.Background(), &b, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
 	r.NoError(err)
 	r.Equal(total, b.amount)
 	r.Equal(count, b.count)

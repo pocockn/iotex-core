@@ -215,7 +215,7 @@ func (core *coreService) Account(addr address.Address) (*iotextypes.AccountMeta,
 		return core.getProtocolAccount(ctx, addrStr)
 	}
 	span.AddEvent("accountutil.AccountStateWithHeight")
-	state, tipHeight, err := accountutil.AccountStateWithHeight(core.sf, addr)
+	state, tipHeight, err := accountutil.AccountStateWithHeight(ctx, core.sf, addr)
 	if err != nil {
 		return nil, nil, status.Error(codes.NotFound, err.Error())
 	}
@@ -242,7 +242,7 @@ func (core *coreService) Account(addr address.Address) (*iotextypes.AccountMeta,
 	}
 	if state.IsContract() {
 		var code protocol.SerializableBytes
-		_, err = core.sf.State(&code, protocol.NamespaceOption(evm.CodeKVNameSpace), protocol.KeyOption(state.CodeHash))
+		_, err = core.sf.State(ctx, &code, protocol.NamespaceOption(evm.CodeKVNameSpace), protocol.KeyOption(state.CodeHash))
 		if err != nil {
 			return nil, nil, status.Error(codes.NotFound, err.Error())
 		}

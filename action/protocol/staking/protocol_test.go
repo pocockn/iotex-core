@@ -224,7 +224,7 @@ func TestCreatePreStates(t *testing.T) {
 	)
 	require.NoError(p.CreatePreStates(ctx, sm))
 	total := &totalAmount{}
-	_, err = sm.State(total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
+	_, err = sm.State(ctx, total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
 	require.NoError(err)
 }
 

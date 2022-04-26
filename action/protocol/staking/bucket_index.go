@@ -7,6 +7,8 @@
 package staking
 
 import (
+	"context"
+
 	"github.com/pkg/errors"
 	"google.golang.org/protobuf/proto"
 
@@ -71,6 +73,7 @@ func (bis *BucketIndices) deleteBucketIndex(index uint64) {
 func getBucketIndices(sr protocol.StateReader, key []byte) (*BucketIndices, uint64, error) {
 	var bis BucketIndices
 	height, err := sr.State(
+		context.Background(),
 		&bis,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(key))
@@ -83,6 +86,7 @@ func getBucketIndices(sr protocol.StateReader, key []byte) (*BucketIndices, uint
 func putBucketIndex(sm protocol.StateManager, key []byte, index uint64) error {
 	var bis BucketIndices
 	if _, err := sm.State(
+		context.Background(),
 		&bis,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(key)); err != nil && errors.Cause(err) != state.ErrStateNotExist {
@@ -99,6 +103,7 @@ func putBucketIndex(sm protocol.StateManager, key []byte, index uint64) error {
 func delBucketIndex(sm protocol.StateManager, key []byte, index uint64) error {
 	var bis BucketIndices
 	if _, err := sm.State(
+		context.Background(),
 		&bis,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(key)); err != nil {

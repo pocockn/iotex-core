@@ -7,6 +7,7 @@
 package accountutil
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/pkg/errors"
@@ -15,6 +16,7 @@ import (
 	"github.com/iotexproject/iotex-address/address"
 
 	"github.com/iotexproject/iotex-core/action/protocol"
+	"github.com/iotexproject/iotex-core/pkg/tracer"
 	"github.com/iotexproject/iotex-core/state"
 )
 
@@ -38,7 +40,7 @@ func LoadOrCreateAccount(sm protocol.StateManager, encodedAddr string) (*state.A
 		return &account, errors.Wrap(err, "failed to get address public key hash from encoded address")
 	}
 	addrHash := hash.BytesToHash160(addr.Bytes())
-	_, err = sm.State(&account, protocol.LegacyKeyOption(addrHash))
+	_, err = sm.State(context.Background(), &account, protocol.LegacyKeyOption(addrHash))
 	if err == nil {
 		return &account, nil
 	}
@@ -61,7 +63,7 @@ func LoadAccount(sr protocol.StateReader, addr address.Address) (*state.Account,
 // LoadAccountByHash160 loads an account state by 20-byte address
 func LoadAccountByHash160(sr protocol.StateReader, addrHash hash.Hash160) (*state.Account, error) {
 	var account state.Account
-	if _, err := sr.State(&account, protocol.LegacyKeyOption(addrHash)); err != nil {
+	if _, err := sr.State(context.Background(), &account, protocol.LegacyKeyOption(addrHash)); err != nil {
 		if errors.Cause(err) == state.ErrStateNotExist {
 			account = state.EmptyAccount()
 			return &account, nil
@@ -81,7 +83,7 @@ func StoreAccount(sm protocol.StateManager, addr address.Address, account *state
 // Recorded tests if an account has been actually stored
 func Recorded(sr protocol.StateReader, addr address.Address) (bool, error) {
 	var account state.Account
-	_, err := sr.State(&account, protocol.LegacyKeyOption(hash.BytesToHash160(addr.Bytes())))
+	_, err := sr.State(context.Background(), &account, protocol.LegacyKeyOption(hash.BytesToHash160(addr.Bytes())))
 	if err == nil {
 		return true, nil
 	}
@@ -93,15 +95,17 @@ func Recorded(sr protocol.StateReader, addr address.Address) (bool, error) {
 
 // AccountState returns the confirmed account state on the chain
 func AccountState(sr protocol.StateReader, addr address.Address) (*state.Account, error) {
-	a, _, err := AccountStateWithHeight(sr, addr)
+	a, _, err := AccountStateWithHeight(context.Background(), sr, addr)
 	return a, err
 }
 
 // AccountStateWithHeight returns the confirmed account state on the chain with what height the state is read from.
-func AccountStateWithHeight(sr protocol.StateReader, addr address.Address) (*state.Account, uint64, error) {
+func AccountStateWithHeight(ctx context.Context, sr protocol.StateReader, addr address.Address) (*state.Account, uint64, error) {
+	span := tracer.SpanFromContext(ctx)
+	defer span.End()
 	pkHash := hash.BytesToHash160(addr.Bytes())
 	var account state.Account
-	h, err := sr.State(&account, protocol.LegacyKeyOption(pkHash))
+	h, err := sr.State(ctx, &account, protocol.LegacyKeyOption(pkHash))
 	if err != nil {
 		if errors.Cause(err) == state.ErrStateNotExist {
 			account = state.EmptyAccount()

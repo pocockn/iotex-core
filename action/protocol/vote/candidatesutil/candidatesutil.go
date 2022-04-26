@@ -7,6 +7,7 @@
 package candidatesutil
 
 import (
+	"context"
 	"math/big"
 	"sort"
 
@@ -46,10 +47,11 @@ func CandidatesFromDB(sr protocol.StateReader, height uint64, loadCandidatesLega
 	var candidates state.CandidateList
 	var stateHeight uint64
 	var err error
+	var ctx context.Context
 	if loadCandidatesLegacy {
 		// Load Candidates on the given height from underlying db [deprecated]
 		candidatesKey := ConstructLegacyKey(height)
-		stateHeight, err = sr.State(&candidates, protocol.LegacyKeyOption(candidatesKey))
+		stateHeight, err = sr.State(ctx, &candidates, protocol.LegacyKeyOption(candidatesKey))
 	} else {
 		candidatesKey := ConstructKey(CurCandidateKey)
 		if epochStartPoint {
@@ -58,6 +60,7 @@ func CandidatesFromDB(sr protocol.StateReader, height uint64, loadCandidatesLega
 			candidatesKey = ConstructKey(NxtCandidateKey)
 		}
 		stateHeight, err = sr.State(
+			ctx,
 			&candidates,
 			protocol.KeyOption(candidatesKey[:]),
 			protocol.NamespaceOption(protocol.SystemNamespace),
@@ -93,7 +96,9 @@ func ProbationListFromDB(sr protocol.StateReader, epochStartPoint bool) (*vote.P
 		log.L().Debug("Read probation list with next probation key")
 		probationlistKey = ConstructKey(NxtProbationKey)
 	}
+	ctx := context.Background()
 	stateHeight, err := sr.State(
+		ctx,
 		probationList,
 		protocol.KeyOption(probationlistKey[:]),
 		protocol.NamespaceOption(protocol.SystemNamespace),
@@ -118,7 +123,9 @@ func ProbationListFromDB(sr protocol.StateReader, epochStartPoint bool) (*vote.P
 func UnproductiveDelegateFromDB(sr protocol.StateReader) (*vote.UnproductiveDelegate, error) {
 	upd := &vote.UnproductiveDelegate{}
 	updKey := ConstructKey(UnproductiveDelegateKey)
+	ctx := context.Background()
 	stateHeight, err := sr.State(
+		ctx,
 		upd,
 		protocol.KeyOption(updKey[:]),
 		protocol.NamespaceOption(protocol.SystemNamespace),
@@ -163,10 +170,11 @@ func LoadAndAddCandidates(sm protocol.StateManager, blkHeight uint64, addr strin
 // GetMostRecentCandidateMap gets the most recent candidateMap from trie
 func GetMostRecentCandidateMap(sm protocol.StateManager, blkHeight uint64) (map[hash.Hash160]*state.Candidate, error) {
 	var sc state.CandidateList
+	var ctx context.Context
 	for h := int(blkHeight); h >= 0; h-- {
 		candidatesKey := ConstructLegacyKey(uint64(h))
 		var err error
-		if _, err = sm.State(&sc, protocol.LegacyKeyOption(candidatesKey)); err == nil {
+		if _, err = sm.State(ctx, &sc, protocol.LegacyKeyOption(candidatesKey)); err == nil {
 			return state.CandidatesToMap(sc)
 		}
 		if errors.Cause(err) != state.ErrStateNotExist {

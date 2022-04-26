@@ -779,13 +779,14 @@ func TestPreimage(t *testing.T) {
 	require.NoError(stateDB.CommitContracts())
 	stateDB.clear()
 	var k protocol.SerializableBytes
-	_, err = stateDB.sm.State(&k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v1[:]))
+	ctx := context.Background()
+	_, err = stateDB.sm.State(ctx, &k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v1[:]))
 	require.NoError(err)
 	require.Equal([]byte("cat"), []byte(k))
-	_, err = stateDB.sm.State(&k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v2[:]))
+	_, err = stateDB.sm.State(ctx, &k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v2[:]))
 	require.NoError(err)
 	require.Equal([]byte("dog"), []byte(k))
-	_, err = stateDB.sm.State(&k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v3[:]))
+	_, err = stateDB.sm.State(ctx, &k, protocol.NamespaceOption(PreimageKVNameSpace), protocol.KeyOption(v3[:]))
 	require.NoError(err)
 	require.Equal([]byte("hen"), []byte(k))
 }

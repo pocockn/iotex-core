@@ -137,7 +137,7 @@ func testRevert(ws *workingSet, t *testing.T) {
 	require.NoError(err)
 
 	require.NoError(ws.Revert(s0))
-	_, err = ws.State(s, protocol.LegacyKeyOption(sHash))
+	_, err = ws.State(context.Background(), s, protocol.LegacyKeyOption(sHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(5), s.Balance)
 }
@@ -158,7 +158,7 @@ func testSDBRevert(ws *workingSet, t *testing.T) {
 	require.NoError(err)
 
 	require.NoError(ws.Revert(s0))
-	_, err = ws.State(s, protocol.LegacyKeyOption(sHash))
+	_, err = ws.State(context.Background(), s, protocol.LegacyKeyOption(sHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(5), s.Balance)
 }
@@ -200,18 +200,19 @@ func testSnapshot(ws *workingSet, t *testing.T) {
 	require.NoError(err)
 
 	require.NoError(ws.Revert(s2))
-	_, err = ws.State(s, protocol.LegacyKeyOption(sHash))
+	ctx := context.Background()
+	_, err = ws.State(ctx, s, protocol.LegacyKeyOption(sHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(15), s.Balance)
-	_, err = ws.State(s, protocol.LegacyKeyOption(tHash))
+	_, err = ws.State(ctx, s, protocol.LegacyKeyOption(tHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(7), s.Balance)
 	require.NoError(ws.Revert(s1))
-	_, err = ws.State(s, protocol.LegacyKeyOption(sHash))
+	_, err = ws.State(ctx, s, protocol.LegacyKeyOption(sHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(10), s.Balance)
 	require.NoError(ws.Revert(s0))
-	_, err = ws.State(s, protocol.LegacyKeyOption(sHash))
+	_, err = ws.State(ctx, s, protocol.LegacyKeyOption(sHash))
 	require.NoError(err)
 	require.Equal(big.NewInt(5), s.Balance)
 }
@@ -473,7 +474,7 @@ func testState(sf Factory, t *testing.T) {
 	accountA, err := accountutil.AccountState(sf, a)
 	require.NoError(t, err)
 	sHash := hash.BytesToHash160(identityset.Address(28).Bytes())
-	_, err = sf.State(&testAccount, protocol.LegacyKeyOption(sHash))
+	_, err = sf.State(ctx, &testAccount, protocol.LegacyKeyOption(sHash))
 	require.NoError(t, err)
 	require.Equal(t, accountA, &testAccount)
 	require.Equal(t, big.NewInt(90), accountA.Balance)
@@ -1190,7 +1191,8 @@ func testCachedBatch(ws *workingSet, t *testing.T) {
 
 	// test State()
 	testAccount := state.EmptyAccount()
-	_, err = ws.State(&testAccount, protocol.LegacyKeyOption(hashA))
+	ctx := context.Background()
+	_, err = ws.State(ctx, &testAccount, protocol.LegacyKeyOption(hashA))
 	require.NoError(err)
 	require.Equal(accountA, testAccount)
 
@@ -1199,7 +1201,7 @@ func testCachedBatch(ws *workingSet, t *testing.T) {
 	require.NoError(err)
 
 	// can't state account "alfa" anymore
-	_, err = ws.State(&testAccount, protocol.LegacyKeyOption(hashA))
+	_, err = ws.State(ctx, &testAccount, protocol.LegacyKeyOption(hashA))
 	require.Error(err)
 }
 
@@ -1373,9 +1375,10 @@ func TestDeleteAndPutSameKey(t *testing.T) {
 		require.NoError(t, err)
 		_, err = ws.DelState(protocol.LegacyKeyOption(key))
 		require.NoError(t, err)
-		_, err = ws.State(&acc, protocol.LegacyKeyOption(key))
+		ctx := context.Background()
+		_, err = ws.State(ctx, &acc, protocol.LegacyKeyOption(key))
 		require.Equal(t, state.ErrStateNotExist, errors.Cause(err))
-		_, err = ws.State(&acc, protocol.LegacyKeyOption(hash.Hash160b([]byte("other"))))
+		_, err = ws.State(ctx, &acc, protocol.LegacyKeyOption(hash.Hash160b([]byte("other"))))
 		require.Equal(t, state.ErrStateNotExist, errors.Cause(err))
 	}
 	ctx := genesis.WithGenesisContext(

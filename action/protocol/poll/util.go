@@ -242,7 +242,7 @@ func shiftCandidates(sm protocol.StateManager) (uint64, error) {
 	var err error
 	var stateHeight, putStateHeight, delStateHeight uint64
 	nextKey := candidatesutil.ConstructKey(candidatesutil.NxtCandidateKey)
-	if stateHeight, err = sm.State(&next, protocol.KeyOption(nextKey[:]), protocol.NamespaceOption(protocol.SystemNamespace)); err != nil {
+	if stateHeight, err = sm.State(context.Background(), &next, protocol.KeyOption(nextKey[:]), protocol.NamespaceOption(protocol.SystemNamespace)); err != nil {
 		return 0, errors.Wrap(
 			err,
 			"failed to read next candidateList when shifting to current candidateList",
@@ -277,7 +277,7 @@ func shiftProbationList(sm protocol.StateManager) (uint64, error) {
 	var stateHeight, putStateHeight, delStateHeight uint64
 	next := &vote.ProbationList{}
 	nextKey := candidatesutil.ConstructKey(candidatesutil.NxtProbationKey)
-	if stateHeight, err = sm.State(next, protocol.KeyOption(nextKey[:]), protocol.NamespaceOption(protocol.SystemNamespace)); err != nil {
+	if stateHeight, err = sm.State(context.Background(), next, protocol.KeyOption(nextKey[:]), protocol.NamespaceOption(protocol.SystemNamespace)); err != nil {
 		return 0, errors.Wrap(
 			err,
 			"failed to read next probationlist when shifting to current probationlist",

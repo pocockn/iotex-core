@@ -776,7 +776,7 @@ func (stateDB *StateDBAdapter) GetCode(evmAddr common.Address) []byte {
 		return nil
 	}
 	var code protocol.SerializableBytes
-	if _, err = stateDB.sm.State(&code, protocol.NamespaceOption(CodeKVNameSpace), protocol.KeyOption(account.CodeHash[:])); err != nil {
+	if _, err = stateDB.sm.State(context.Background(), &code, protocol.NamespaceOption(CodeKVNameSpace), protocol.KeyOption(account.CodeHash[:])); err != nil {
 		// TODO: Suppress the as it's too much now
 		//log.L().Error("Failed to get code from trie.", zap.Error(err))
 		return nil

@@ -7,6 +7,7 @@
 package staking
 
 import (
+	"context"
 	"math/big"
 	"sort"
 	"strings"
@@ -310,7 +311,7 @@ func getCandidate(sr protocol.StateReader, name address.Address) (*Candidate, ui
 		return nil, 0, ErrNilParameters
 	}
 	var d Candidate
-	height, err := sr.State(&d, protocol.NamespaceOption(CandidateNameSpace), protocol.KeyOption(name.Bytes()))
+	height, err := sr.State(context.Background(), &d, protocol.NamespaceOption(CandidateNameSpace), protocol.KeyOption(name.Bytes()))
 	return &d, height, err
 }
 

@@ -25,6 +25,7 @@ import (
 	"github.com/iotexproject/iotex-core/blockchain/block"
 	"github.com/iotexproject/iotex-core/db"
 	"github.com/iotexproject/iotex-core/pkg/log"
+	"github.com/iotexproject/iotex-core/pkg/tracer"
 	"github.com/iotexproject/iotex-core/state"
 )
 
@@ -236,12 +237,15 @@ func (ws *workingSet) GetDB() db.KVStore {
 }
 
 // State pulls a state from DB
-func (ws *workingSet) State(s interface{}, opts ...protocol.StateOption) (uint64, error) {
+func (ws *workingSet) State(ctx context.Context, s interface{}, opts ...protocol.StateOption) (uint64, error) {
+	_, span := tracer.NewSpan(ctx, "workingSet.State")
+	defer span.End()
 	stateDBMtc.WithLabelValues("get").Inc()
 	cfg, err := processOptions(opts...)
 	if err != nil {
 		return ws.height, err
 	}
+	span.AddEvent("ws.getStateFunc")
 	return ws.height, ws.getStateFunc(cfg.Namespace, cfg.Key, s)
 }
 

@@ -108,7 +108,7 @@ func readCode(sr protocol.StateReader, addr []byte) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = sr.State(&c, protocol.NamespaceOption(evm.CodeKVNameSpace), protocol.KeyOption(account.CodeHash[:]))
+	_, err = sr.State(context.Background(), &c, protocol.NamespaceOption(evm.CodeKVNameSpace), protocol.KeyOption(account.CodeHash[:]))
 
 	return c[:], err
 }

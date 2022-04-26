@@ -309,12 +309,12 @@ func (p *Protocol) stateCheckLegacy(ctx context.Context, sm protocol.StateReader
 
 func (p *Protocol) stateV1(sm protocol.StateReader, key []byte, value interface{}) (uint64, error) {
 	keyHash := hash.Hash160b(append(p.keyPrefix, key...))
-	return sm.State(value, protocol.LegacyKeyOption(keyHash))
+	return sm.State(context.Background(), value, protocol.LegacyKeyOption(keyHash))
 }
 
 func (p *Protocol) stateV2(sm protocol.StateReader, key []byte, value interface{}) (uint64, error) {
 	k := append(p.keyPrefix, key...)
-	return sm.State(value, protocol.KeyOption(k), protocol.NamespaceOption(v2Namespace))
+	return sm.State(context.Background(), value, protocol.KeyOption(k), protocol.NamespaceOption(v2Namespace))
 }
 
 func (p *Protocol) putState(ctx context.Context, sm protocol.StateManager, key []byte, value interface{}) error {

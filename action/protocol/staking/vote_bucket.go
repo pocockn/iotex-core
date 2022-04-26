@@ -8,6 +8,7 @@ package staking
 
 import (
 	"bytes"
+	"context"
 	"math"
 	"math/big"
 	"time"
@@ -202,6 +203,7 @@ func (tc *totalBucketCount) Count() uint64 {
 func getTotalBucketCount(sr protocol.StateReader) (uint64, error) {
 	var tc totalBucketCount
 	_, err := sr.State(
+		context.Background(),
 		&tc,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(TotalBucketKey))
@@ -212,6 +214,7 @@ func getBucket(sr protocol.StateReader, index uint64) (*VoteBucket, error) {
 	var vb VoteBucket
 	var err error
 	if _, err = sr.State(
+		context.Background(),
 		&vb,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(bucketKey(index))); err != nil {
@@ -219,6 +222,7 @@ func getBucket(sr protocol.StateReader, index uint64) (*VoteBucket, error) {
 	}
 	var tc totalBucketCount
 	if _, err := sr.State(
+		context.Background(),
 		&tc,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(TotalBucketKey)); err != nil && errors.Cause(err) != state.ErrStateNotExist {
@@ -245,6 +249,7 @@ func updateBucket(sm protocol.StateManager, index uint64, bucket *VoteBucket) er
 func putBucket(sm protocol.StateManager, bucket *VoteBucket) (uint64, error) {
 	var tc totalBucketCount
 	if _, err := sm.State(
+		context.Background(),
 		&tc,
 		protocol.NamespaceOption(StakingNameSpace),
 		protocol.KeyOption(TotalBucketKey)); err != nil && errors.Cause(err) != state.ErrStateNotExist {

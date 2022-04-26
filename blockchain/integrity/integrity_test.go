@@ -193,8 +193,9 @@ func addTestingConstantinopleBlocks(bc blockchain.Blockchain, dao blockdao.Block
 	var (
 		caller     state.Account
 		callerAddr = hash.BytesToHash160(identityset.Address(27).Bytes())
+		ctx        = context.Background()
 	)
-	_, err = sf.State(&caller, protocol.LegacyKeyOption(callerAddr))
+	_, err = sf.State(ctx, &caller, protocol.LegacyKeyOption(callerAddr))
 	if err != nil {
 		return err
 	}
@@ -216,7 +217,7 @@ func addTestingConstantinopleBlocks(bc blockchain.Blockchain, dao blockdao.Block
 
 	// Add block 9
 	// test store out of gas
-	_, err = sf.State(&caller, protocol.LegacyKeyOption(callerAddr))
+	_, err = sf.State(ctx, &caller, protocol.LegacyKeyOption(callerAddr))
 	if err != nil {
 		return err
 	}
@@ -236,7 +237,7 @@ func addTestingConstantinopleBlocks(bc blockchain.Blockchain, dao blockdao.Block
 		}
 	}
 
-	_, err = sf.State(&caller, protocol.LegacyKeyOption(callerAddr))
+	_, err = sf.State(ctx, &caller, protocol.LegacyKeyOption(callerAddr))
 	if err != nil {
 		return err
 	}

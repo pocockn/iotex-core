@@ -7,6 +7,8 @@
 package factory
 
 import (
+	"context"
+
 	"github.com/iotexproject/iotex-core/action/protocol"
 	"github.com/iotexproject/iotex-core/state"
 )
@@ -31,7 +33,7 @@ func (hReader *historyStateReader) Height() (uint64, error) {
 }
 
 // State returns history state in the archive mode state factory
-func (hReader *historyStateReader) State(s interface{}, opts ...protocol.StateOption) (uint64, error) {
+func (hReader *historyStateReader) State(ctx context.Context, s interface{}, opts ...protocol.StateOption) (uint64, error) {
 	return hReader.height, hReader.sf.StateAtHeight(hReader.height, s, opts...)
 }
 

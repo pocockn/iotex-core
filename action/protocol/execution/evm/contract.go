@@ -106,7 +106,7 @@ func (c *contract) GetCode() ([]byte, error) {
 	if c.code != nil {
 		return c.code[:], nil
 	}
-	_, err := c.sm.State(&c.code, protocol.NamespaceOption(CodeKVNameSpace), protocol.KeyOption(c.Account.CodeHash))
+	_, err := c.sm.State(context.Background(), &c.code, protocol.NamespaceOption(CodeKVNameSpace), protocol.KeyOption(c.Account.CodeHash))
 	if err != nil {
 		return nil, err
 	}

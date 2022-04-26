@@ -5,6 +5,7 @@
 package mock_chainmanager
 
 import (
+	context "context"
 	reflect "reflect"
 
 	gomock "github.com/golang/mock/gomock"
@@ -66,10 +67,10 @@ func (mr *MockStateReaderMockRecorder) ReadView(arg0 interface{}) *gomock.Call {
 }
 
 // State mocks base method.
-func (m *MockStateReader) State(arg0 interface{}, arg1 ...protocol.StateOption) (uint64, error) {
+func (m *MockStateReader) State(arg0 context.Context, arg1 interface{}, arg2 ...protocol.StateOption) (uint64, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "State", varargs...)
@@ -79,9 +80,9 @@ func (m *MockStateReader) State(arg0 interface{}, arg1 ...protocol.StateOption) 
 }
 
 // State indicates an expected call of State.
-func (mr *MockStateReaderMockRecorder) State(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+func (mr *MockStateReaderMockRecorder) State(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "State", reflect.TypeOf((*MockStateReader)(nil).State), varargs...)
 }
 
@@ -266,10 +267,10 @@ func (mr *MockStateManagerMockRecorder) Snapshot() *gomock.Call {
 }
 
 // State mocks base method.
-func (m *MockStateManager) State(arg0 interface{}, arg1 ...protocol.StateOption) (uint64, error) {
+func (m *MockStateManager) State(arg0 context.Context, arg1 interface{}, arg2 ...protocol.StateOption) (uint64, error) {
 	m.ctrl.T.Helper()
-	varargs := []interface{}{arg0}
-	for _, a := range arg1 {
+	varargs := []interface{}{arg0, arg1}
+	for _, a := range arg2 {
 		varargs = append(varargs, a)
 	}
 	ret := m.ctrl.Call(m, "State", varargs...)
@@ -279,9 +280,9 @@ func (m *MockStateManager) State(arg0 interface{}, arg1 ...protocol.StateOption)
 }
 
 // State indicates an expected call of State.
-func (mr *MockStateManagerMockRecorder) State(arg0 interface{}, arg1 ...interface{}) *gomock.Call {
+func (mr *MockStateManagerMockRecorder) State(arg0, arg1 interface{}, arg2 ...interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
-	varargs := append([]interface{}{arg0}, arg1...)
+	varargs := append([]interface{}{arg0, arg1}, arg2...)
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "State", reflect.TypeOf((*MockStateManager)(nil).State), varargs...)
 }
 

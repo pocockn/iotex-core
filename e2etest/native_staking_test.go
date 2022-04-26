@@ -226,12 +226,12 @@ func TestNativeStaking(t *testing.T) {
 
 		// check buckets
 		var bis staking.BucketIndices
-		_, err = sf.State(&bis, protocol.NamespaceOption(staking.StakingNameSpace),
+		_, err = sf.State(ctx, &bis, protocol.NamespaceOption(staking.StakingNameSpace),
 			protocol.KeyOption(addrKeyWithPrefix(voter1Addr, _voterIndex)))
 		require.Error(err)
 		require.Equal(state.ErrStateNotExist, errors.Cause(err))
 
-		_, err = sf.State(&bis, protocol.NamespaceOption(staking.StakingNameSpace),
+		_, err = sf.State(ctx, &bis, protocol.NamespaceOption(staking.StakingNameSpace),
 			protocol.KeyOption(addrKeyWithPrefix(voter2Addr, _voterIndex)))
 		require.NoError(err)
 		require.Equal(2, len(bis))
@@ -378,12 +378,12 @@ func TestNativeStaking(t *testing.T) {
 		require.Equal(hash.BytesToHash256(cand1Addr.Bytes()), logs[0].Topics[2])
 
 		// check buckets
-		_, err = sf.State(&bis, protocol.NamespaceOption(staking.StakingNameSpace),
+		_, err = sf.State(ctx, &bis, protocol.NamespaceOption(staking.StakingNameSpace),
 			protocol.KeyOption(addrKeyWithPrefix(cand1Addr, _voterIndex)))
 		require.NoError(err)
 		require.Equal(1, len(bis))
 
-		_, err = sf.State(&bis, protocol.NamespaceOption(staking.StakingNameSpace),
+		_, err = sf.State(ctx, &bis, protocol.NamespaceOption(staking.StakingNameSpace),
 			protocol.KeyOption(addrKeyWithPrefix(cand1Addr, _candIndex)))
 		require.NoError(err)
 		require.Equal(2, len(bis))
@@ -444,7 +444,7 @@ func checkCandidateState(
 	candidateAddr address.Address,
 ) error {
 	var cand staking.Candidate
-	if _, err := sr.State(&cand, protocol.NamespaceOption(staking.CandidateNameSpace), protocol.KeyOption(candidateAddr.Bytes())); err != nil {
+	if _, err := sr.State(context.Background(), &cand, protocol.NamespaceOption(staking.CandidateNameSpace), protocol.KeyOption(candidateAddr.Bytes())); err != nil {
 		return err
 	}
 	if expectedName != cand.Name {

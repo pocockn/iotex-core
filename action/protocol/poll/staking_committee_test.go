@@ -148,7 +148,7 @@ func TestCreateGenesisStates_StakingCommittee(t *testing.T) {
 	ctx = protocol.WithFeatureWithHeightCtx(ctx)
 	require.NoError(p.CreateGenesisStates(ctx, sm))
 	var candlist state.CandidateList
-	_, err = sm.State(&candlist, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+	_, err = sm.State(context.Background(), &candlist, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 	require.NoError(err)
 	candidates, err := state.CandidatesToMap(candlist)
 	require.NoError(err)
@@ -221,7 +221,7 @@ func TestHandle_StakingCommittee(t *testing.T) {
 		ctx2 = protocol.WithFeatureWithHeightCtx(ctx2)
 		require.NoError(p2.CreateGenesisStates(ctx2, sm2))
 		var sc2 state.CandidateList
-		_, err = sm2.State(&sc2, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+		_, err = sm2.State(context.Background(), &sc2, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 		require.NoError(err)
 		act2 := action.NewPutPollResult(1, 1, sc2)
 		bd := &action.EnvelopeBuilder{}
@@ -251,7 +251,7 @@ func TestHandle_StakingCommittee(t *testing.T) {
 		ctx2 = protocol.WithFeatureWithHeightCtx(ctx2)
 		require.NoError(p2.CreateGenesisStates(ctx2, sm2))
 		var sc2 state.CandidateList
-		_, err = sm2.State(&sc2, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+		_, err = sm2.State(context.Background(), &sc2, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 		require.NoError(err)
 		act2 := action.NewPutPollResult(1, 1, sc2)
 		bd := &action.EnvelopeBuilder{}
@@ -286,7 +286,7 @@ func TestHandle_StakingCommittee(t *testing.T) {
 		ctx3 = protocol.WithFeatureWithHeightCtx(ctx3)
 		require.NoError(p3.CreateGenesisStates(ctx3, sm3))
 		var sc3 state.CandidateList
-		_, err = sm3.State(&sc3, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+		_, err = sm3.State(context.Background(), &sc3, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 		require.NoError(err)
 		sc3 = append(sc3, &state.Candidate{"1", big.NewInt(10), "2", nil})
 		sc3 = append(sc3, &state.Candidate{"1", big.NewInt(10), "2", nil})
@@ -323,7 +323,7 @@ func TestHandle_StakingCommittee(t *testing.T) {
 		ctx4 = protocol.WithFeatureWithHeightCtx(ctx4)
 		require.NoError(p4.CreateGenesisStates(ctx4, sm4))
 		var sc4 state.CandidateList
-		_, err = sm4.State(&sc4, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+		_, err = sm4.State(context.Background(), &sc4, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 		require.NoError(err)
 		sc4 = append(sc4, &state.Candidate{"1", big.NewInt(10), "2", nil})
 		act4 := action.NewPutPollResult(1, 1, sc4)
@@ -360,7 +360,7 @@ func TestHandle_StakingCommittee(t *testing.T) {
 		ctx5 = protocol.WithFeatureWithHeightCtx(ctx5)
 		require.NoError(p5.CreateGenesisStates(ctx5, sm5))
 		var sc5 state.CandidateList
-		_, err = sm5.State(&sc5, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
+		_, err = sm5.State(context.Background(), &sc5, protocol.LegacyKeyOption(candidatesutil.ConstructLegacyKey(1)))
 		sc5[0].Votes = big.NewInt(10)
 		act5 := action.NewPutPollResult(1, 1, sc5)
 		bd5 := &action.EnvelopeBuilder{}

@@ -30,7 +30,7 @@ func (imsm *inMemStateManager) Height() (uint64, error) {
 	return 0, nil
 }
 
-func (imsm *inMemStateManager) State(s interface{}, opts ...StateOption) (uint64, error) {
+func (imsm *inMemStateManager) State(ctx context.Context, s interface{}, opts ...StateOption) (uint64, error) {
 	cfg, err := CreateStateConfig(opts...)
 	if err != nil {
 		return 0, err

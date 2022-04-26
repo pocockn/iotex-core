@@ -59,7 +59,7 @@ func (kv *kvStoreForTrie) Delete(key []byte) error {
 
 func (kv *kvStoreForTrie) Get(key []byte) ([]byte, error) {
 	var value SerializableBytes
-	_, err := kv.sm.State(&value, KeyOption(key), kv.nsOpt)
+	_, err := kv.sm.State(context.Background(), &value, KeyOption(key), kv.nsOpt)
 	switch errors.Cause(err) {
 	case state.ErrStateNotExist:
 		return nil, errors.Wrapf(db.ErrNotExist, "failed to find key %x", key)
@@ -90,7 +90,7 @@ func (kv *kvStoreForTrieWithStateReader) Delete(key []byte) error {
 
 func (kv *kvStoreForTrieWithStateReader) Get(key []byte) ([]byte, error) {
 	var value SerializableBytes
-	_, err := kv.sr.State(&value, KeyOption(key), kv.nsOpt)
+	_, err := kv.sr.State(context.Background(), &value, KeyOption(key), kv.nsOpt)
 	switch errors.Cause(err) {
 	case state.ErrStateNotExist:
 		return nil, errors.Wrapf(db.ErrNotExist, "failed to find key %x", key)

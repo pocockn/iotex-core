@@ -223,7 +223,7 @@ func TestCreateGenesisStates(t *testing.T) {
 	require.NoError(p.CreateGenesisStates(ctx, sm))
 	var sc state.CandidateList
 	candKey := candidatesutil.ConstructKey(candidatesutil.NxtCandidateKey)
-	_, err = sm.State(&sc, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+	_, err = sm.State(context.Background(), &sc, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 	require.NoError(err)
 	candidates, err := state.CandidatesToMap(sc)
 	require.NoError(err)
@@ -311,7 +311,7 @@ func TestCreatePreStates(t *testing.T) {
 		require.NoError(psc.CreatePreStates(ctx, sm)) // shift
 		bl := &vote.ProbationList{}
 		key := candidatesutil.ConstructKey(candidatesutil.CurProbationKey)
-		_, err := sm.State(bl, protocol.KeyOption(key[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err := sm.State(ctx, bl, protocol.KeyOption(key[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		expected := test[epochNum]
 		require.Equal(len(expected), len(bl.ProbationInfo))
@@ -343,7 +343,7 @@ func TestCreatePreStates(t *testing.T) {
 
 		bl = &vote.ProbationList{}
 		key = candidatesutil.ConstructKey(candidatesutil.NxtProbationKey)
-		_, err = sm.State(bl, protocol.KeyOption(key[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm.State(ctx, bl, protocol.KeyOption(key[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		expected = test[epochNum+1]
 		require.Equal(len(expected), len(bl.ProbationInfo))
@@ -385,7 +385,7 @@ func TestHandle(t *testing.T) {
 		require.NoError(err)
 		require.NoError(p2.CreateGenesisStates(ctx2, sm2))
 		var sc2 state.CandidateList
-		_, err = sm2.State(&sc2, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm2.State(ctx, &sc2, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		act2 := action.NewPutPollResult(1, 1, sc2)
 		bd := &action.EnvelopeBuilder{}
@@ -432,7 +432,7 @@ func TestHandle(t *testing.T) {
 		require.NoError(err)
 		require.NoError(p2.CreateGenesisStates(ctx2, sm2))
 		var sc2 state.CandidateList
-		_, err = sm2.State(&sc2, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm2.State(context.Background(), &sc2, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		act2 := action.NewPutPollResult(1, 1, sc2)
 		bd := &action.EnvelopeBuilder{}
@@ -465,7 +465,7 @@ func TestHandle(t *testing.T) {
 		require.NoError(err)
 		require.NoError(p3.CreateGenesisStates(ctx3, sm3))
 		var sc3 state.CandidateList
-		_, err = sm3.State(&sc3, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm3.State(context.Background(), &sc3, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		sc3 = append(sc3, &state.Candidate{"1", big.NewInt(10), "2", nil})
 		sc3 = append(sc3, &state.Candidate{"1", big.NewInt(10), "2", nil})
@@ -500,7 +500,7 @@ func TestHandle(t *testing.T) {
 		require.NoError(err)
 		require.NoError(p4.CreateGenesisStates(ctx4, sm4))
 		var sc4 state.CandidateList
-		_, err = sm4.State(&sc4, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm4.State(context.Background(), &sc4, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		sc4 = append(sc4, &state.Candidate{"1", big.NewInt(10), "2", nil})
 		act4 := action.NewPutPollResult(1, 1, sc4)
@@ -534,7 +534,7 @@ func TestHandle(t *testing.T) {
 		require.NoError(err)
 		require.NoError(p5.CreateGenesisStates(ctx5, sm5))
 		var sc5 state.CandidateList
-		_, err = sm5.State(&sc5, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
+		_, err = sm5.State(context.Background(), &sc5, protocol.KeyOption(candKey[:]), protocol.NamespaceOption(protocol.SystemNamespace))
 		require.NoError(err)
 		sc5[0].Votes = big.NewInt(10)
 		act5 := action.NewPutPollResult(1, 1, sc5)

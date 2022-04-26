@@ -609,13 +609,16 @@ func (sf *factory) StatesAtHeight(height uint64, opts ...protocol.StateOption) (
 }
 
 // State returns a confirmed state in the state factory
-func (sf *factory) State(s interface{}, opts ...protocol.StateOption) (uint64, error) {
+func (sf *factory) State(ctx context.Context, s interface{}, opts ...protocol.StateOption) (uint64, error) {
+	_, span := tracer.NewSpan(ctx, "factory.State")
+	defer span.End()
 	sf.mutex.RLock()
 	defer sf.mutex.RUnlock()
 	cfg, err := processOptions(opts...)
 	if err != nil {
 		return 0, err
 	}
+	span.AddEvent("dao.Get")
 	value, err := sf.dao.Get(cfg.Namespace, cfg.Key)
 	if err != nil {
 		if errors.Cause(err) == db.ErrNotExist {
@@ -623,7 +626,7 @@ func (sf *factory) State(s interface{}, opts ...protocol.StateOption) (uint64, e
 		}
 		return sf.currentChainHeight, err
 	}
-
+	span.AddEvent("state.Deserialize")
 	return sf.currentChainHeight, state.Deserialize(s, value)
 }
 

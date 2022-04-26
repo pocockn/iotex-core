@@ -114,7 +114,7 @@ func createAccount(sm protocol.StateManager, encodedAddr string, init *big.Int) 
 		return errors.Wrap(err, "failed to get address public key hash from encoded address")
 	}
 	addrHash := hash.BytesToHash160(addr.Bytes())
-	_, err = sm.State(&account, protocol.LegacyKeyOption(addrHash))
+	_, err = sm.State(context.Background(), &account, protocol.LegacyKeyOption(addrHash))
 	switch errors.Cause(err) {
 	case nil:
 		return errors.Errorf("failed to create account %s", encodedAddr)

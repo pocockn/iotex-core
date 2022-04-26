@@ -1,6 +1,8 @@
 package protocol
 
 import (
+	"context"
+
 	"github.com/iotexproject/go-pkgs/hash"
 	"github.com/iotexproject/iotex-core/db"
 	"github.com/iotexproject/iotex-core/state"
@@ -72,7 +74,7 @@ type (
 	// StateReader defines an interface to read stateDB
 	StateReader interface {
 		Height() (uint64, error)
-		State(interface{}, ...StateOption) (uint64, error)
+		State(context.Context, interface{}, ...StateOption) (uint64, error)
 		States(...StateOption) (uint64, state.Iterator, error)
 		ReadView(string) (interface{}, error)
 	}

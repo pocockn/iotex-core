@@ -7,6 +7,7 @@
 package staking
 
 import (
+	"context"
 	"math/big"
 
 	"github.com/iotexproject/go-pkgs/hash"
@@ -102,7 +103,7 @@ func NewBucketPool(sr protocol.StateReader, enableSMStorage bool) (*BucketPool, 
 	}
 
 	if bp.enableSMStorage {
-		switch _, err := sr.State(bp.total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey)); errors.Cause(err) {
+		switch _, err := sr.State(context.Background(), bp.total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey)); errors.Cause(err) {
 		case nil:
 			return &bp, nil
 		case state.ErrStateNotExist:
@@ -152,7 +153,7 @@ func (bp *BucketPool) Copy(enableSMStorage bool) *BucketPool {
 // Sync syncs the data from state manager
 func (bp *BucketPool) Sync(sm protocol.StateManager) error {
 	if bp.enableSMStorage {
-		_, err := sm.State(bp.total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
+		_, err := sm.State(context.Background(), bp.total, protocol.NamespaceOption(StakingNameSpace), protocol.KeyOption(bucketPoolAddrKey))
 		return err
 	}
 	// get stashed total amount
