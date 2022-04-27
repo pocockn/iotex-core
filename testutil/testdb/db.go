@@ -121,7 +121,7 @@ func NewMockStateManager(ctrl *gomock.Controller) protocol.StateManager {
 	dk := protocol.NewDock()
 	view := protocol.View{}
 	sm.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(
-		func(s interface{}, opts ...protocol.StateOption) (uint64, error) {
+		func(_, s interface{}, opts ...protocol.StateOption) (uint64, error) {
 			cfg, err := protocol.CreateStateConfig(opts...)
 			if err != nil {
 				return 0, err
