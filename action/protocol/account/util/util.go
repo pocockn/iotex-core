@@ -101,7 +101,7 @@ func AccountState(sr protocol.StateReader, addr address.Address) (*state.Account
 
 // AccountStateWithHeight returns the confirmed account state on the chain with what height the state is read from.
 func AccountStateWithHeight(ctx context.Context, sr protocol.StateReader, addr address.Address) (*state.Account, uint64, error) {
-	span := tracer.SpanFromContext(ctx)
+	ctx, span := tracer.NewSpan(ctx, "AccountStateWithHeight")
 	defer span.End()
 	pkHash := hash.BytesToHash160(addr.Bytes())
 	var account state.Account

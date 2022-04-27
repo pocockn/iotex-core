@@ -7,6 +7,7 @@ package actpool
 
 import (
 	"container/heap"
+	"context"
 	"fmt"
 	"math/big"
 	"math/rand"
@@ -128,7 +129,7 @@ func TestActQueuePendingActs(t *testing.T) {
 	require := require.New(t)
 	cfg := config.Default
 	sf := mock_chainmanager.NewMockStateReader(ctrl)
-	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, accountState *state.Account, _ protocol.StateOption) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, accountState *state.Account, _ protocol.StateOption) {
 		accountState.Nonce = uint64(1)
 	}).Return(uint64(0), nil).Times(1)
 	ap, err := NewActPool(sf, cfg.ActPool, EnableExperimentalActions())

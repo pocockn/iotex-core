@@ -47,7 +47,7 @@ func CandidatesFromDB(sr protocol.StateReader, height uint64, loadCandidatesLega
 	var candidates state.CandidateList
 	var stateHeight uint64
 	var err error
-	var ctx context.Context
+	ctx := context.Background()
 	if loadCandidatesLegacy {
 		// Load Candidates on the given height from underlying db [deprecated]
 		candidatesKey := ConstructLegacyKey(height)
@@ -170,11 +170,10 @@ func LoadAndAddCandidates(sm protocol.StateManager, blkHeight uint64, addr strin
 // GetMostRecentCandidateMap gets the most recent candidateMap from trie
 func GetMostRecentCandidateMap(sm protocol.StateManager, blkHeight uint64) (map[hash.Hash160]*state.Candidate, error) {
 	var sc state.CandidateList
-	var ctx context.Context
 	for h := int(blkHeight); h >= 0; h-- {
 		candidatesKey := ConstructLegacyKey(uint64(h))
 		var err error
-		if _, err = sm.State(ctx, &sc, protocol.LegacyKeyOption(candidatesKey)); err == nil {
+		if _, err = sm.State(context.Background(), &sc, protocol.LegacyKeyOption(candidatesKey)); err == nil {
 			return state.CandidatesToMap(sc)
 		}
 		if errors.Cause(err) != state.ErrStateNotExist {
