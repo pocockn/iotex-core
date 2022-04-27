@@ -126,7 +126,7 @@ func TestActPool_AddActs(t *testing.T) {
 
 	require := require.New(t)
 	sf := mock_chainmanager.NewMockStateReader(ctrl)
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -323,7 +323,7 @@ func TestActPool_PickActs(t *testing.T) {
 		tsf10, err := action.SignedTransfer(addr2, priKey2, uint64(5), big.NewInt(5), []byte{}, uint64(100000), big.NewInt(0))
 		require.NoError(err)
 
-		sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+		sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 			acct, ok := account.(*state.Account)
 			require.True(ok)
 			acct.Nonce = 0
@@ -391,7 +391,7 @@ func TestActPool_removeConfirmedActs(t *testing.T) {
 	tsf4, err := action.SignedTransfer(addr1, priKey1, uint64(4), big.NewInt(30), []byte{}, uint64(100000), big.NewInt(0))
 	require.NoError(err)
 
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -406,7 +406,7 @@ func TestActPool_removeConfirmedActs(t *testing.T) {
 
 	require.Equal(4, len(ap.allActions))
 	require.NotNil(ap.accountActs[addr1])
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 4
@@ -432,7 +432,7 @@ func TestActPool_Reset(t *testing.T) {
 		big.NewInt(20),
 	}
 	nonces := []uint64{0, 0, 0, 0, 0}
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		cfg := &protocol.StateConfig{}
@@ -792,7 +792,7 @@ func TestActPool_removeInvalidActs(t *testing.T) {
 	require.NoError(err)
 	tsf4, err := action.SignedTransfer(addr1, priKey1, uint64(4), big.NewInt(30), []byte{}, uint64(100000), big.NewInt(0))
 	require.NoError(err)
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -837,7 +837,7 @@ func TestActPool_GetPendingNonce(t *testing.T) {
 	require.NoError(err)
 	tsf4, err := action.SignedTransfer(addr1, priKey1, uint64(4), big.NewInt(30), []byte{}, uint64(100000), big.NewInt(0))
 	require.NoError(err)
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -885,7 +885,7 @@ func TestActPool_GetUnconfirmedActs(t *testing.T) {
 	tsf5, err := action.SignedTransfer(addr1, priKey2, uint64(1), big.NewInt(30), []byte{}, uint64(100000), big.NewInt(0))
 	require.NoError(err)
 
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -977,7 +977,7 @@ func TestActPool_GetSize(t *testing.T) {
 	tsf4, err := action.SignedTransfer(addr1, priKey1, uint64(4), big.NewInt(30), []byte{}, uint64(20000), big.NewInt(0))
 	require.NoError(err)
 
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
@@ -991,7 +991,7 @@ func TestActPool_GetSize(t *testing.T) {
 	require.NoError(ap.Add(context.Background(), tsf4))
 	require.Equal(uint64(4), ap.GetSize())
 	require.Equal(uint64(40000), ap.GetGasSize())
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 4
@@ -1030,7 +1030,7 @@ func TestActPool_SpeedUpAction(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	require := require.New(t)
 	sf := mock_chainmanager.NewMockStateReader(ctrl)
-	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).DoAndReturn(func(_, account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
 		acct.Nonce = 0
