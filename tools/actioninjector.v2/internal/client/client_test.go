@@ -55,7 +55,7 @@ func TestClient(t *testing.T) {
 	sf := mock_factory.NewMockFactory(mockCtrl)
 	ap := mock_actpool.NewMockActPool(mockCtrl)
 
-	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_, accountState *state.Account, _ protocol.StateOption) {
+	sf.EXPECT().State(gomock.Any(), gomock.Any(), gomock.Any()).Do(func(_ context.Context, accountState *state.Account, _ protocol.StateOption) {
 		*accountState = state.EmptyAccount()
 	})
 	sf.EXPECT().Height().Return(uint64(10), nil).AnyTimes()
