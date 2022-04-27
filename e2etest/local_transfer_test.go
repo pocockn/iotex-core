@@ -441,35 +441,38 @@ func TestLocalTransfer(t *testing.T) {
 			}
 			require.Equal(expectedRecvrBalance.String(), newRecvState.Balance.String(), tsfTest.message)
 		case TsfFail:
-			require.Error(err, tsfTest.message)
+			// bad address will be in actpool, but won't pass validation in protocol execution
+			if tsfTest.recvAcntState != AcntBadAddr {
+				require.Error(err, tsfTest.message)
 
-			st, ok := status.FromError(err)
-			require.True(ok, tsfTest.message)
-			require.Equal(st.Code(), codes.Internal, tsfTest.message)
+				st, ok := status.FromError(err)
+				require.True(ok, tsfTest.message)
+				require.Equal(st.Code(), codes.Internal, tsfTest.message)
 
-			details := st.Details()
-			require.Equal(len(details), 1, tsfTest.message)
+				details := st.Details()
+				require.Equal(len(details), 1, tsfTest.message)
 
-			detail, ok := details[0].(*errdetails.BadRequest)
-			require.True(ok, tsfTest.message)
-			require.Equal(len(detail.FieldViolations), 1, tsfTest.message)
+				detail, ok := details[0].(*errdetails.BadRequest)
+				require.True(ok, tsfTest.message)
+				require.Equal(len(detail.FieldViolations), 1, tsfTest.message)
 
-			violation := detail.FieldViolations[0]
-			require.Equal(tsfTest.expectedDesc, violation.Description, tsfTest.message)
-			require.Equal(violation.Field, "Action rejected", tsfTest.message)
+				violation := detail.FieldViolations[0]
+				require.Equal(tsfTest.expectedDesc, violation.Description, tsfTest.message)
+				require.Equal(violation.Field, "Action rejected", tsfTest.message)
 
-			//The transfer should be rejected right after we inject it
-			//Wait long enough to make sure the failed transfer does not exit in either action pool or blockchain
-			err := backoff.Retry(func() error {
-				var err error
-				tsfHash, err1 := tsf.Hash()
-				if err1 != nil {
-					return err1
-				}
-				_, err = ap.GetActionByHash(tsfHash)
-				return err
-			}, bo)
-			require.Error(err, tsfTest.message)
+				//The transfer should be rejected right after we inject it
+				//Wait long enough to make sure the failed transfer does not exit in either action pool or blockchain
+				err := backoff.Retry(func() error {
+					var err error
+					tsfHash, err1 := tsf.Hash()
+					if err1 != nil {
+						return err1
+					}
+					_, err = ap.GetActionByHash(tsfHash)
+					return err
+				}, bo)
+				require.Error(err, tsfTest.message)
+			}
 			tsfHash, err1 := tsf.Hash()
 			require.NoError(err1)
 			_, err = util.GetActionByActionHash(as, tsfHash)
@@ -481,7 +484,6 @@ func TestLocalTransfer(t *testing.T) {
 				newSenderState, _ := accountutil.AccountState(sf, senderAddr1)
 				require.Equal(tsfTest.senderBalance.String(), newSenderState.Balance.String())
 			}
-
 		case TsfPending:
 			require.NoError(err, tsfTest.message)
 			//Need to wait long enough to make sure the pending transfer is not minted, only stay in action pool
