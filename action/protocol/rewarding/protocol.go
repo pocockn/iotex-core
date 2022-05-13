@@ -196,17 +196,17 @@ func (p *Protocol) Handle(
 		rlog, err := p.Deposit(ctx, sm, act.Amount(), iotextypes.TransactionLogType_DEPOSIT_TO_REWARDING_FUND)
 		if err != nil {
 			log.L().Debug("Error when handling rewarding action", zap.Error(err))
-			return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
+			return p.settleUserAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
 		}
-		return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil, rlog)
+		return p.settleUserAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil, rlog)
 	case *action.ClaimFromRewardingFund:
 		si := sm.Snapshot()
 		rlog, err := p.Claim(ctx, sm, act.Amount())
 		if err != nil {
 			log.L().Debug("Error when handling rewarding action", zap.Error(err))
-			return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
+			return p.settleUserAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
 		}
-		return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil, rlog)
+		return p.settleUserAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil, rlog)
 	case *action.GrantReward:
 		switch act.RewardType() {
 		case action.BlockReward:
@@ -214,20 +214,20 @@ func (p *Protocol) Handle(
 			rewardLog, err := p.GrantBlockReward(ctx, sm)
 			if err != nil {
 				log.L().Debug("Error when handling rewarding action", zap.Error(err))
-				return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
+				return p.settleSystemAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
 			}
 			if rewardLog == nil {
-				return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil)
+				return p.settleSystemAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, nil)
 			}
-			return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, []*action.Log{rewardLog})
+			return p.settleSystemAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, []*action.Log{rewardLog})
 		case action.EpochReward:
 			si := sm.Snapshot()
 			rewardLogs, err := p.GrantEpochReward(ctx, sm)
 			if err != nil {
 				log.L().Debug("Error when handling rewarding action", zap.Error(err))
-				return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
+				return p.settleSystemAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Failure), si, nil)
 			}
-			return p.settleAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, rewardLogs)
+			return p.settleSystemAction(ctx, sm, uint64(iotextypes.ReceiptStatus_Success), si, rewardLogs)
 		}
 	}
 	return nil, nil
@@ -363,11 +363,34 @@ func (p *Protocol) deleteStateV2(sm protocol.StateManager, key []byte) error {
 	return err
 }
 
+func (p *Protocol) settleSystemAction(
+	ctx context.Context,
+	sm protocol.StateManager,
+	status uint64,
+	si int,
+	logs []*action.Log,
+	tLogs ...*action.TransactionLog,
+) (*action.Receipt, error) {
+	return p.settleAction(ctx, sm, status, si, true, logs, tLogs...)
+}
+
+func (p *Protocol) settleUserAction(
+	ctx context.Context,
+	sm protocol.StateManager,
+	status uint64,
+	si int,
+	logs []*action.Log,
+	tLogs ...*action.TransactionLog,
+) (*action.Receipt, error) {
+	return p.settleAction(ctx, sm, status, si, false, logs, tLogs...)
+}
+
 func (p *Protocol) settleAction(
 	ctx context.Context,
 	sm protocol.StateManager,
 	status uint64,
 	si int,
+	isSystemAction bool,
 	logs []*action.Log,
 	tLogs ...*action.TransactionLog,
 ) (*action.Receipt, error) {
@@ -378,16 +401,18 @@ func (p *Protocol) settleAction(
 			return nil, err
 		}
 	}
-	gasFee := big.NewInt(0).Mul(actionCtx.GasPrice, big.NewInt(0).SetUint64(actionCtx.IntrinsicGas))
-	depositLog, err := DepositGas(ctx, sm, gasFee)
-	if err != nil {
-		return nil, err
-	}
-	if depositLog != nil {
-		tLogs = append(tLogs, depositLog)
-	}
-	if err := p.increaseNonce(ctx, sm, actionCtx.Caller, actionCtx.Nonce); err != nil {
-		return nil, err
+	if !isSystemAction || !protocol.MustGetFeatureCtx(ctx).SkipUpdateForSystemAction {
+		gasFee := big.NewInt(0).Mul(actionCtx.GasPrice, big.NewInt(0).SetUint64(actionCtx.IntrinsicGas))
+		depositLog, err := DepositGas(ctx, sm, gasFee)
+		if err != nil {
+			return nil, err
+		}
+		if depositLog != nil {
+			tLogs = append(tLogs, depositLog)
+		}
+		if err := p.increaseNonce(ctx, sm, actionCtx.Caller, actionCtx.Nonce); err != nil {
+			return nil, err
+		}
 	}
 	return p.createReceipt(status, blkCtx.BlockHeight, actionCtx.ActionHash, actionCtx.IntrinsicGas, logs, tLogs...), nil
 }
