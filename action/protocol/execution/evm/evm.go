@@ -297,6 +297,9 @@ func prepareStateDB(ctx context.Context, sm protocol.StateManager) *StateDBAdapt
 	blkCtx := protocol.MustGetBlockCtx(ctx)
 	featureCtx := protocol.MustGetFeatureCtx(ctx)
 	opts := []StateDBAdapterOption{}
+	if featureCtx.CreateZeroNonceAccount {
+		opts = append(opts, ZeroNonceAccountOption())
+	}
 	if featureCtx.UsePendingNonceOption {
 		opts = append(opts, SortCachedContractsOption(), UsePendingNonceOption())
 	}

@@ -104,6 +104,7 @@ type (
 		TolerateLegacyAddress       bool
 		EnableWeb3Staking           bool
 		ValidateRewardProtocol      bool
+		CreateZeroNonceAccount      bool
 		SkipUpdateForSystemAction   bool
 	}
 
@@ -235,6 +236,7 @@ func WithFeatureCtx(ctx context.Context) context.Context {
 			TolerateLegacyAddress:       !g.IsNewfoundland(height),
 			EnableWeb3Staking:           g.IsNewfoundland(height),
 			ValidateRewardProtocol:      g.IsNewfoundland(height),
+			CreateZeroNonceAccount:      g.IsToBeEnabled(height),
 			SkipUpdateForSystemAction:   g.IsToBeEnabled(height),
 		},
 	)

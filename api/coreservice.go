@@ -261,6 +261,7 @@ func (core *coreService) Account(addr address.Address) (*iotextypes.AccountMeta,
 	if statePendingNonce == 0 {
 		return nil, nil, status.Error(codes.Internal, "invalid pending nonce")
 	}
+	// TODO: deprecate `Nonce`
 	accountMeta := &iotextypes.AccountMeta{
 		Address:      addrStr,
 		Balance:      state.Balance.String(),
