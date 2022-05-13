@@ -39,7 +39,9 @@ func TestValidator(t *testing.T) {
 		if strings.EqualFold(eAddr.String(), addr.String()) {
 			return nil, errors.New("MockChainManager nonce error")
 		}
-		return &state.Account{Nonce: 2}, nil
+		acct := &state.Account{}
+		acct.SetNonce(2)
+		return acct, nil
 	})
 
 	tsf1, err := action.SignedTransfer(identityset.Address(28).String(), identityset.PrivateKey(27), 1, big.NewInt(20), []byte{}, 100000, big.NewInt(10))

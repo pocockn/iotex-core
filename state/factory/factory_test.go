@@ -1355,9 +1355,8 @@ func TestStateDBPatch(t *testing.T) {
 func TestDeleteAndPutSameKey(t *testing.T) {
 	testDeleteAndPutSameKey := func(t *testing.T, ws *workingSet) {
 		key := hash.Hash160b([]byte("test"))
-		acc := state.Account{
-			Nonce: 1,
-		}
+		acc := state.Account{}
+		acc.SetNonce(1)
 		_, err := ws.PutState(acc, protocol.LegacyKeyOption(key))
 		require.NoError(t, err)
 		_, err = ws.DelState(protocol.LegacyKeyOption(key))

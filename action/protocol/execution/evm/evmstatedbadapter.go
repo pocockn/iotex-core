@@ -300,10 +300,10 @@ func (stateDB *StateDBAdapter) GetNonce(evmAddr common.Address) uint64 {
 		log.L().Error("Failed to get nonce.", zap.Error(err))
 		// stateDB.logError(err)
 	} else {
-		nonce = state.Nonce
-	}
-	if stateDB.usePendingNonce {
 		nonce = state.PendingNonce()
+		if !stateDB.usePendingNonce {
+			nonce--
+		}
 	}
 	log.L().Debug("Called GetNonce.",
 		zap.String("address", addr.String()),
@@ -485,9 +485,15 @@ func (stateDB *StateDBAdapter) Empty(evmAddr common.Address) bool {
 		return true
 	}
 	// TODO: delete hash.ZeroHash256
-	return s.Nonce == 0 &&
-		s.Balance.Sign() == 0 &&
-		(len(s.CodeHash) == 0 || bytes.Equal(s.CodeHash, hash.ZeroHash256[:]))
+	if !(s.Balance.Sign() == 0 && (len(s.CodeHash) == 0 || bytes.Equal(s.CodeHash, hash.ZeroHash256[:]))) {
+		return false
+	}
+	switch s.Type {
+	case 1:
+		return s.PendingNonce() == 0
+	default:
+		return s.Type == 0 && s.PendingNonce() == 1
+	}
 }
 
 // RevertToSnapshot reverts the state factory to the state at a given snapshot

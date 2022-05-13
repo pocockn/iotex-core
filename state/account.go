@@ -27,7 +27,7 @@ var (
 type Account struct {
 	// for Type 0, nonce 0 is reserved from actions in genesis block and coinbase transfers nonces
 	// other actions' nonces start from 1
-	Nonce        uint64
+	nonce        uint64
 	Balance      *big.Int
 	Root         hash.Hash256 // storage trie root for contract account
 	CodeHash     []byte       // hash of the smart contract byte-code for contract account
@@ -39,7 +39,7 @@ type Account struct {
 // ToProto converts to protobuf's Account
 func (st *Account) ToProto() *accountpb.Account {
 	acPb := &accountpb.Account{}
-	acPb.Nonce = st.Nonce
+	acPb.Nonce = st.nonce
 	if _, ok := accountpb.AccountType_name[st.Type]; !ok {
 		panic("unknown account type")
 	}
@@ -65,7 +65,7 @@ func (st Account) Serialize() ([]byte, error) {
 
 // FromProto converts from protobuf's Account
 func (st *Account) FromProto(acPb *accountpb.Account) {
-	st.Nonce = acPb.Nonce
+	st.nonce = acPb.Nonce
 	st.Type = int32(acPb.Type.Number())
 	if acPb.Balance == "" {
 		st.Balance = big.NewInt(0)
@@ -123,18 +123,19 @@ func (st *Account) IsContract() bool {
 func (st *Account) PendingNonce() uint64 {
 	switch st.Type {
 	case 1:
-		return st.Nonce
+		return st.nonce
 	default: // 0
-		return st.Nonce + 1
+		return st.nonce + 1
 	}
 }
 
+// SetNonce sets the nonce according to type
 func (st *Account) SetNonce(nonce uint64) {
 	switch st.Type {
 	case 1:
-		st.Nonce = nonce + 1
+		st.nonce = nonce + 1
 	default: // 0
-		st.Nonce = nonce
+		st.nonce = nonce
 	}
 }
 
@@ -144,7 +145,7 @@ func (st *Account) Clone() *Account {
 	s.Balance = nil
 	s.Balance = new(big.Int).Set(st.Balance)
 	s.Type = st.Type
-	s.Nonce = st.Nonce
+	s.nonce = st.nonce
 	s.VotingWeight = nil
 	if st.VotingWeight != nil {
 		s.VotingWeight = new(big.Int).Set(st.VotingWeight)
