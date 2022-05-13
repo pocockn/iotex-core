@@ -386,20 +386,23 @@ func (p *Protocol) settleAction(
 	if depositLog != nil {
 		tLogs = append(tLogs, depositLog)
 	}
-	if err := p.increaseNonce(sm, actionCtx.Caller, actionCtx.Nonce); err != nil {
+	if err := p.increaseNonce(ctx, sm, actionCtx.Caller, actionCtx.Nonce); err != nil {
 		return nil, err
 	}
 	return p.createReceipt(status, blkCtx.BlockHeight, actionCtx.ActionHash, actionCtx.IntrinsicGas, logs, tLogs...), nil
 }
 
-func (p *Protocol) increaseNonce(sm protocol.StateManager, addr address.Address, nonce uint64) error {
-	acc, err := accountutil.LoadOrCreateAccount(sm, addr)
+func (p *Protocol) increaseNonce(ctx context.Context, sm protocol.StateManager, addr address.Address, nonce uint64) error {
+	accountCreationOpts := []accountutil.AccountCreationOption{}
+	if protocol.MustGetFeatureCtx(ctx).CreateZeroNonceAccount {
+		accountCreationOpts = append(accountCreationOpts, accountutil.ZeroNonceAccountTypeOption())
+	}
+	acc, err := accountutil.LoadOrCreateAccount(sm, addr, accountCreationOpts...)
 	if err != nil {
 		return err
 	}
-	// TODO: this check shouldn't be necessary
-	if nonce > acc.Nonce {
-		acc.Nonce = nonce
+	if err := accountutil.SetNonce(acc, nonce); err != nil {
+		return errors.Wrapf(err, "invalid nonce %d", nonce)
 	}
 	return accountutil.StoreAccount(sm, addr, acc)
 }

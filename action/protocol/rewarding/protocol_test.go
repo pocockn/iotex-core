@@ -312,6 +312,7 @@ func TestProtocol_Handle(t *testing.T) {
 		protocol.ActionCtx{
 			Caller:   identityset.Address(0),
 			GasPrice: big.NewInt(0),
+			Nonce:    1,
 		},
 	)
 
@@ -319,7 +320,7 @@ func TestProtocol_Handle(t *testing.T) {
 	db := action.DepositToRewardingFundBuilder{}
 	deposit := db.SetAmount(big.NewInt(1000000)).Build()
 	eb1 := action.EnvelopeBuilder{}
-	e1 := eb1.SetNonce(0).
+	e1 := eb1.SetNonce(1).
 		SetGasPrice(big.NewInt(0)).
 		SetGasLimit(deposit.GasLimit()).
 		SetAction(&deposit).
@@ -338,12 +339,26 @@ func TestProtocol_Handle(t *testing.T) {
 	e2 := createGrantRewardAction(0, uint64(0))
 	se2, err := action.Sign(e2, identityset.PrivateKey(0))
 	require.NoError(t, err)
-
+	ctx = protocol.WithActionCtx(
+		ctx,
+		protocol.ActionCtx{
+			Caller:   identityset.Address(0),
+			GasPrice: big.NewInt(0),
+			Nonce:    2,
+		},
+	)
 	receipt, err := p.Handle(ctx, se2.Action(), sm)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(iotextypes.ReceiptStatus_Success), receipt.Status)
 	assert.Equal(t, 1, len(receipt.Logs()))
-	// Grant the block reward again should fail
+	ctx = protocol.WithActionCtx(
+		ctx,
+		protocol.ActionCtx{
+			Caller:   identityset.Address(0),
+			GasPrice: big.NewInt(0),
+			Nonce:    3,
+		},
+	) // Grant the block reward again should fail
 	receipt, err = p.Handle(ctx, se2.Action(), sm)
 	require.NoError(t, err)
 	assert.Equal(t, uint64(iotextypes.ReceiptStatus_Failure), receipt.Status)
@@ -352,14 +367,21 @@ func TestProtocol_Handle(t *testing.T) {
 	claimBuilder := action.ClaimFromRewardingFundBuilder{}
 	claim := claimBuilder.SetAmount(big.NewInt(1000000)).Build()
 	eb3 := action.EnvelopeBuilder{}
-	e3 := eb3.SetNonce(0).
+	e3 := eb3.SetNonce(4).
 		SetGasPrice(big.NewInt(0)).
 		SetGasLimit(claim.GasLimit()).
 		SetAction(&claim).
 		Build()
 	se3, err := action.Sign(e3, identityset.PrivateKey(0))
 	require.NoError(t, err)
-
+	ctx = protocol.WithActionCtx(
+		ctx,
+		protocol.ActionCtx{
+			Caller:   identityset.Address(0),
+			GasPrice: big.NewInt(0),
+			Nonce:    4,
+		},
+	)
 	_, err = p.Handle(ctx, se3.Action(), sm)
 	require.NoError(t, err)
 	balance, _, err = p.TotalBalance(ctx, sm)

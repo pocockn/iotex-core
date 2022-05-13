@@ -521,9 +521,8 @@ func (p *Protocol) settleAction(
 	if err != nil {
 		return nil, err
 	}
-	// TODO: this check shouldn't be necessary
-	if actionCtx.Nonce > acc.Nonce {
-		acc.Nonce = actionCtx.Nonce
+	if err := accountutil.SetNonce(acc, actionCtx.Nonce); err != nil {
+		return nil, errors.Wrap(err, "failed to set nonce")
 	}
 	if err := accountutil.StoreAccount(sm, actionCtx.Caller, acc); err != nil {
 		return nil, errors.Wrap(err, "failed to update nonce")

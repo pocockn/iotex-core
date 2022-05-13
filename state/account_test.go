@@ -32,7 +32,7 @@ func TestEncodeDecode(t *testing.T) {
 	s2 := Account{}
 	require.NoError(s2.Deserialize(ss))
 	require.Equal(big.NewInt(20000000), s2.Balance)
-	require.Equal(uint64(0x10), s2.Nonce)
+	require.Equal(uint64(0x11), s2.PendingNonce())
 	require.Equal(hash.ZeroHash256, s2.Root)
 	require.Equal([]byte("testing codehash"), s2.CodeHash)
 }

@@ -70,6 +70,7 @@ type (
 		asyncContractTrie   bool
 		sortCachedContracts bool
 		usePendingNonce     bool
+		zeroNonceAccount    bool
 		fixSnapshotOrder    bool
 		revertLog           bool
 	}
@@ -106,6 +107,14 @@ func AsyncContractTrieOption() StateDBAdapterOption {
 func UsePendingNonceOption() StateDBAdapterOption {
 	return func(adapter *StateDBAdapter) error {
 		adapter.usePendingNonce = true
+		return nil
+	}
+}
+
+// ZeroNonceAccountOption set fixPendingNonce as true
+func ZeroNonceAccountOption() StateDBAdapterOption {
+	return func(adapter *StateDBAdapter) error {
+		adapter.zeroNonceAccount = true
 		return nil
 	}
 }
@@ -169,6 +178,13 @@ func (stateDB *StateDBAdapter) Error() error {
 	return stateDB.err
 }
 
+func (stateDB *StateDBAdapter) accountCreationOpts() []accountutil.AccountCreationOption {
+	if stateDB.zeroNonceAccount {
+		return []accountutil.AccountCreationOption{accountutil.ZeroNonceAccountTypeOption()}
+	}
+	return nil
+}
+
 // CreateAccount creates an account in iotx blockchain
 func (stateDB *StateDBAdapter) CreateAccount(evmAddr common.Address) {
 	addr, err := address.FromBytes(evmAddr.Bytes())
@@ -176,7 +192,7 @@ func (stateDB *StateDBAdapter) CreateAccount(evmAddr common.Address) {
 		log.L().Error("Failed to convert evm address.", zap.Error(err))
 		return
 	}
-	_, err = accountutil.LoadOrCreateAccount(stateDB.sm, addr)
+	_, err = accountutil.LoadOrCreateAccount(stateDB.sm, addr, stateDB.accountCreationOpts()...)
 	if err != nil {
 		log.L().Error("Failed to create account.", zap.Error(err))
 		stateDB.logError(err)
@@ -232,7 +248,7 @@ func (stateDB *StateDBAdapter) AddBalance(evmAddr common.Address, amount *big.In
 	if contract, ok := stateDB.cachedContract[addrHash]; ok {
 		state = contract.SelfState()
 	} else {
-		state, err = accountutil.LoadOrCreateAccount(stateDB.sm, addr)
+		state, err = accountutil.LoadOrCreateAccount(stateDB.sm, addr, stateDB.accountCreationOpts()...)
 		if err != nil {
 			log.L().Error("Failed to add balance.", log.Hex("addrHash", evmAddr[:]))
 			stateDB.logError(err)
@@ -265,7 +281,7 @@ func (stateDB *StateDBAdapter) GetBalance(evmAddr common.Address) *big.Int {
 
 // InitNonce returns the init nonce of an account
 func (stateDB *StateDBAdapter) InitNonce() uint64 {
-	if stateDB.usePendingNonce {
+	if !stateDB.zeroNonceAccount && stateDB.usePendingNonce {
 		return 1
 	}
 	return 0
@@ -287,7 +303,7 @@ func (stateDB *StateDBAdapter) GetNonce(evmAddr common.Address) uint64 {
 		nonce = state.Nonce
 	}
 	if stateDB.usePendingNonce {
-		nonce++
+		nonce = state.PendingNonce()
 	}
 	log.L().Debug("Called GetNonce.",
 		zap.String("address", addr.String()),
@@ -318,9 +334,12 @@ func (stateDB *StateDBAdapter) SetNonce(evmAddr common.Address, nonce uint64) {
 	log.L().Debug("Called SetNonce.",
 		zap.String("address", addr.String()),
 		zap.Uint64("nonce", nonce))
-	s.Nonce = nonce
-	if err := accountutil.StoreAccount(stateDB.sm, addr, s); err != nil {
+	if err := accountutil.SetNonce(s, nonce); err != nil {
 		log.L().Error("Failed to set nonce.", zap.Error(err))
+		stateDB.logError(err)
+	}
+	if err := accountutil.StoreAccount(stateDB.sm, addr, s); err != nil {
+		log.L().Error("Failed to store account.", zap.Error(err))
 		stateDB.logError(err)
 	}
 }

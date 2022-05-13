@@ -129,7 +129,7 @@ func TestActPool_AddActs(t *testing.T) {
 	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
-		acct.Nonce = 0
+		// acct.Nonce = 0
 		cfg := &protocol.StateConfig{}
 		for _, opt := range opts {
 			opt(cfg)
@@ -326,7 +326,7 @@ func TestActPool_PickActs(t *testing.T) {
 		sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 			acct, ok := account.(*state.Account)
 			require.True(ok)
-			acct.Nonce = 0
+			// acct.Nonce = 0
 			cfg := &protocol.StateConfig{}
 			for _, opt := range opts {
 				opt(cfg)
@@ -394,7 +394,7 @@ func TestActPool_removeConfirmedActs(t *testing.T) {
 	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
-		acct.Nonce = 0
+		// acct.Nonce = 0
 		acct.Balance = big.NewInt(100000000000000000)
 
 		return 0, nil
@@ -409,7 +409,7 @@ func TestActPool_removeConfirmedActs(t *testing.T) {
 	sf.EXPECT().State(gomock.Any(), gomock.Any()).DoAndReturn(func(account interface{}, opts ...protocol.StateOption) (uint64, error) {
 		acct, ok := account.(*state.Account)
 		require.True(ok)
-		acct.Nonce = 4
+		acct.SetNonce(4)
 		acct.Balance = big.NewInt(100000000000000000)
 
 		return 0, nil
@@ -1102,7 +1102,7 @@ func (ap *actPool) getPendingNonce(addr string) (uint64, error) {
 		return 0, err
 	}
 	committedState, err := accountutil.AccountState(ap.sf, _addr1)
-	return committedState.Nonce + 1, err
+	return committedState.PendingNonce(), err
 }
 
 // Helper function to return the correct pending balance just in case of empty queue

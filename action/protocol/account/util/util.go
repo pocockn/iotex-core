@@ -18,19 +18,32 @@ import (
 	"github.com/iotexproject/iotex-core/state"
 )
 
-type noncer interface {
-	Nonce() uint64
-}
+// AccountCreationOption is to create new account with specific settings
+type AccountCreationOption func(*state.Account) error
 
-// SetNonce sets nonce for account
-func SetNonce(i noncer, state *state.Account) {
-	if i.Nonce() > state.Nonce {
-		state.Nonce = i.Nonce()
+// ZeroNonceAccountTypeOption is an option to create account with new account type
+func ZeroNonceAccountTypeOption() AccountCreationOption {
+	return func(account *state.Account) error {
+		account.Type = 1
+		return nil
 	}
 }
 
+// SetNonce sets nonce for account
+func SetNonce(state *state.Account, nonce uint64) error {
+	if nonce == state.PendingNonce() {
+		state.SetNonce(nonce)
+		return nil
+	}
+	if nonce != 0 { // for system actions
+		return errors.Errorf("invalid nonce %d, expect %d", nonce, state.PendingNonce())
+	}
+
+	return nil
+}
+
 // LoadOrCreateAccount either loads an account state or creates an account state
-func LoadOrCreateAccount(sm protocol.StateManager, addr address.Address) (*state.Account, error) {
+func LoadOrCreateAccount(sm protocol.StateManager, addr address.Address, opts ...AccountCreationOption) (*state.Account, error) {
 	var (
 		account  state.Account
 		addrHash = hash.BytesToHash160(addr.Bytes())
@@ -42,6 +55,11 @@ func LoadOrCreateAccount(sm protocol.StateManager, addr address.Address) (*state
 	if errors.Cause(err) == state.ErrStateNotExist {
 		account.Balance = big.NewInt(0)
 		account.VotingWeight = big.NewInt(0)
+		for _, opt := range opts {
+			if err := opt(&account); err != nil {
+				return nil, errors.Wrap(err, "failed to apply account creation option")
+			}
+		}
 		if _, err := sm.PutState(account, protocol.LegacyKeyOption(addrHash)); err != nil {
 			return nil, errors.Wrapf(err, "failed to put state for account %x", addrHash)
 		}
