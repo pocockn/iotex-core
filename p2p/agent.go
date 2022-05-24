@@ -10,7 +10,6 @@ import (
 	"context"
 	"encoding/hex"
 	"fmt"
-	"io"
 	"strconv"
 	"strings"
 	"time"
@@ -109,6 +108,10 @@ type (
 		Self() ([]multiaddr.Multiaddr, error)
 		// Neighbors returns the neighbors' peer info
 		Neighbors(ctx context.Context) ([]peer.AddrInfo, error)
+		// ConnectedPeers returns the connected peers' info
+		ConnectedPeers(ctx context.Context) ([]peer.AddrInfo, error)
+		// BlockPeer blocks in the peer in p2p layer
+		BlockPeer(string)
 	}
 
 	dummyAgent struct{}
@@ -175,6 +178,14 @@ func (*dummyAgent) Neighbors(ctx context.Context) ([]peer.AddrInfo, error) {
 	return nil, nil
 }
 
+func (*dummyAgent) ConnectedPeers(ctx context.Context) ([]peer.AddrInfo, error) {
+	return nil, nil
+}
+
+func (*dummyAgent) BlockPeer(string) {
+	return
+}
+
 // NewAgent instantiates a local P2P agent instance
 func NewAgent(cfg Network, chainID uint32, genesisHash hash.Hash256, broadcastHandler HandleBroadcastInbound, unicastHandler HandleUnicastInboundAsync) Agent {
 	log.L().Info("p2p agent", log.Hex("topicSuffix", genesisHash[22:]))
@@ -201,6 +212,7 @@ func (p *agent) Start(ctx context.Context) error {
 		p2p.MasterKey(p.cfg.MasterKey),
 		p2p.PrivateNetworkPSK(p.cfg.PrivateNetworkPSK),
 		p2p.DHTProtocolID(p.chainID),
+		p2p.DHTGroupID(p.chainID),
 	}
 	if p.cfg.EnableRateLimit {
 		opts = append(opts, p2p.WithRateLimit(p.cfg.RateLimit))
@@ -274,7 +286,7 @@ func (p *agent) Start(ctx context.Context) error {
 		return errors.Wrap(err, "error when adding broadcast pubsub")
 	}
 
-	if err := host.AddUnicastPubSub(_unicastTopic+p.topicSuffix, func(ctx context.Context, _ io.Writer, data []byte) (err error) {
+	if err := host.AddUnicastPubSub(_unicastTopic+p.topicSuffix, func(ctx context.Context, peerInfo peer.AddrInfo, data []byte) (err error) {
 		// Blocking handling the unicast message until the agent is started
 		<-ready
 		var (
@@ -307,17 +319,6 @@ func (p *agent) Start(ctx context.Context) error {
 		t := unicast.GetTimestamp().AsTime()
 		latency = time.Since(t).Nanoseconds() / time.Millisecond.Nanoseconds()
 
-		stream, ok := p2p.GetUnicastStream(ctx)
-		if !ok {
-			err = errors.Wrap(err, "error when get unicast stream")
-			return
-		}
-		remote := stream.Conn().RemotePeer()
-		peerID = remote.Pretty()
-		peerInfo := peer.AddrInfo{
-			ID:    remote,
-			Addrs: []multiaddr.Multiaddr{stream.Conn().RemoteMultiaddr()},
-		}
 		p.unicastInboundAsyncHandler(ctx, unicast.ChainId, peerInfo, msg)
 		p.qosMetrics.updateRecvUnicast(peerID, time.Now())
 		return
@@ -333,13 +334,15 @@ func (p *agent) Start(ctx context.Context) error {
 			p.bootNodeAddr = append(p.bootNodeAddr, bootAddr)
 		}
 	}
+	if err := host.AddBootstrap(p.bootNodeAddr); err != nil {
+		return err
+	}
 
 	// connect to bootstrap nodes
 	p.host = host
-	if err = p.connect(ctx); err != nil {
+	if err := p.joinP2P(ctx); err != nil {
 		return err
 	}
-	p.host.JoinOverlay(ctx)
 	close(ready)
 
 	// check network connectivity every 60 blocks, and reconnect in case of disconnection
@@ -491,12 +494,47 @@ func (p *agent) Neighbors(ctx context.Context) ([]peer.AddrInfo, error) {
 	return nb, nil
 }
 
-// connect connects to bootstrap nodes
-func (p *agent) connect(ctx context.Context) error {
+func (p *agent) ConnectedPeers(ctx context.Context) ([]peer.AddrInfo, error) {
+	if p.host == nil {
+		return nil, ErrAgentNotStarted
+	}
+	return p.host.ConnectedPeers(), nil
+}
+
+func (p *agent) BlockPeer(pidStr string) {
+	pid, err := peer.Decode(pidStr)
+	if err != nil {
+		log.L().Error("fail to block peer", zap.Error(err))
+		return
+	}
+	p.host.AddBlocklist(pid)
+}
+
+func (p *agent) joinP2P(ctx context.Context) error {
 	if len(p.cfg.BootstrapNodes) == 0 {
 		return nil
 	}
+	if err := p.connectBootNode(ctx); err != nil {
+		return err
+	}
+	var (
+		interval = 200 * time.Microsecond
+		retry    = 10
+	)
+	// it takes times to establish handshake with bootstrap
+	if err := exponentialRetry(
+		func() error { return p.host.JoinOverlay(ctx) },
+		interval,
+		retry,
+	); err != nil {
+		return err
+	}
+	p.host.FindPeers(ctx)
+	return nil
+}
 
+// connect connects to bootstrap nodes
+func (p *agent) connectBootNode(ctx context.Context) error {
 	var tryNum, errNum, connNum, desiredConnNum int
 	conn := make(chan struct{}, len(p.cfg.BootstrapNodes))
 	connErrChan := make(chan error, len(p.cfg.BootstrapNodes))
@@ -542,15 +580,16 @@ func (p *agent) connect(ctx context.Context) error {
 }
 
 func (p *agent) reconnect() {
-	peers, err := p.Neighbors(context.Background())
-	if err == ErrAgentNotStarted {
+	if p.host == nil {
 		return
 	}
-	if len(peers) == 0 || p.qosMetrics.lostConnection() {
+	if len(p.host.ConnectedPeers()) == 0 || p.qosMetrics.lostConnection() {
 		log.L().Info("network lost, try re-connecting.")
 		p.host.ClearBlocklist()
-		p.connect(context.Background())
+		p.joinP2P(context.Background())
+		return
 	}
+	p.host.FindPeers(context.Background())
 }
 
 func convertAppMsg(msg proto.Message) (iotexrpc.MessageType, []byte, error) {
