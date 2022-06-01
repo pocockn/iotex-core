@@ -423,14 +423,14 @@ func (d *IotxDispatcher) HandleBroadcast(ctx context.Context, chainID uint32, pe
 
 	switch msgType {
 	case iotexrpc.MessageType_CONSENSUS:
-		log.L().Info("broadcast censensus msg")
+		log.L().Info("handle broadcast censensus msg")
 		if err := subscriber.HandleConsensusMsg(message.(*iotextypes.ConsensusMessage)); err != nil {
 			log.L().Debug("Failed to handle consensus message.", zap.Error(err))
 		}
 	case iotexrpc.MessageType_ACTION:
 		d.dispatchAction(ctx, chainID, message)
 	case iotexrpc.MessageType_BLOCK:
-		log.L().Info("broadcast block msg")
+		log.L().Info("handle broadcast block msg")
 		d.dispatchBlock(ctx, chainID, peer, message)
 	default:
 		log.L().Warn("Unexpected msgType handled by HandleBroadcast.", zap.Any("msgType", msgType))

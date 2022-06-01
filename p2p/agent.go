@@ -392,6 +392,7 @@ func (p *agent) BroadcastOutbound(ctx context.Context, msg proto.Message) (err e
 	if err != nil {
 		return
 	}
+	log.L().Info("boardcast msg", zap.Int("msgtype", int(msgType)))
 	broadcast := iotexrpc.BroadcastMsg{
 		ChainId:   p.chainID,
 		PeerId:    host.HostIdentity(),
