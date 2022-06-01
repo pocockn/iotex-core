@@ -110,7 +110,7 @@ type (
 		Neighbors(ctx context.Context) ([]peer.AddrInfo, error)
 		// ConnectedPeers returns the connected peers' info
 		ConnectedPeers(ctx context.Context) ([]peer.AddrInfo, error)
-		// BlockPeer blocks in the peer in p2p layer
+		// BlockPeer blocks the peer in p2p layer
 		BlockPeer(string)
 	}
 
@@ -291,7 +291,7 @@ func (p *agent) Start(ctx context.Context) error {
 		<-ready
 		var (
 			unicast iotexrpc.UnicastMsg
-			peerID  string
+			peerID  = peerInfo.ID.Pretty()
 			latency int64
 		)
 		defer func() {
@@ -341,6 +341,7 @@ func (p *agent) Start(ctx context.Context) error {
 	// connect to bootstrap nodes
 	p.host = host
 	if err := p.joinP2P(ctx); err != nil {
+		log.L().Error("fail to join p2p network", zap.Error(err))
 		return err
 	}
 	close(ready)
@@ -502,6 +503,7 @@ func (p *agent) ConnectedPeers(ctx context.Context) ([]peer.AddrInfo, error) {
 }
 
 func (p *agent) BlockPeer(pidStr string) {
+	log.L().Info("blockPeer", zap.String("pid", pidStr))
 	pid, err := peer.Decode(pidStr)
 	if err != nil {
 		log.L().Error("fail to block peer", zap.Error(err))
@@ -586,10 +588,14 @@ func (p *agent) reconnect() {
 	if len(p.host.ConnectedPeers()) == 0 || p.qosMetrics.lostConnection() {
 		log.L().Info("network lost, try re-connecting.")
 		p.host.ClearBlocklist()
-		p.joinP2P(context.Background())
+		if err := p.joinP2P(context.Background()); err != nil {
+			log.L().Error("fail to join p2p network", zap.Error(err))
+		}
 		return
 	}
-	p.host.FindPeers(context.Background())
+	if err := p.host.FindPeers(context.Background()); err != nil {
+		log.L().Error("fail to find peers", zap.Error(err))
+	}
 }
 
 func convertAppMsg(msg proto.Message) (iotexrpc.MessageType, []byte, error) {

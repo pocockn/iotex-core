@@ -302,6 +302,13 @@ func (bs *blockSyncer) ProcessSyncRequest(ctx context.Context, peer peer.AddrInf
 		)
 		end = tip
 	}
+	log.L().Info(
+		"SyncRequest",
+		zap.Uint64("start", start),
+		zap.Uint64("end", end),
+		zap.Uint64("tipHeight", tip),
+		zap.Uint64("targetHeight", bs.targetHeight),
+	)
 	for i := start; i <= end; i++ {
 		// TODO: fetch block from buffer
 		blk, err := bs.blockByHeightHandler(i)
