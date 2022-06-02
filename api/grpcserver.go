@@ -30,6 +30,7 @@ import (
 	"github.com/iotexproject/iotex-core/action/protocol"
 	logfilter "github.com/iotexproject/iotex-core/api/logfilter"
 	"github.com/iotexproject/iotex-core/pkg/log"
+	"github.com/iotexproject/iotex-core/pkg/recovery"
 	"github.com/iotexproject/iotex-core/pkg/tracer"
 )
 
@@ -71,6 +72,11 @@ func NewGRPCServer(core CoreService, grpcPort int) *GRPCServer {
 
 // Start starts the GRPC server
 func (svr *GRPCServer) Start(_ context.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	lis, err := net.Listen("tcp", svr.port)
 	if err != nil {
 		log.L().Error("grpc server failed to listen.", zap.Error(err))
@@ -87,12 +93,22 @@ func (svr *GRPCServer) Start(_ context.Context) error {
 
 // Stop stops the GRPC server
 func (svr *GRPCServer) Stop(_ context.Context) error {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	svr.grpcServer.Stop()
 	return nil
 }
 
 // SuggestGasPrice suggests gas price
 func (svr *GRPCServer) SuggestGasPrice(ctx context.Context, in *iotexapi.SuggestGasPriceRequest) (*iotexapi.SuggestGasPriceResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	suggestPrice, err := svr.coreService.SuggestGasPrice()
 	if err != nil {
 		return nil, status.Error(codes.Internal, err.Error())
@@ -102,6 +118,11 @@ func (svr *GRPCServer) SuggestGasPrice(ctx context.Context, in *iotexapi.Suggest
 
 // GetAccount returns the metadata of an account
 func (svr *GRPCServer) GetAccount(ctx context.Context, in *iotexapi.GetAccountRequest) (*iotexapi.GetAccountResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	span := tracer.SpanFromContext(ctx)
 	defer span.End()
 	addr, err := address.FromString(in.Address)
@@ -122,6 +143,11 @@ func (svr *GRPCServer) GetAccount(ctx context.Context, in *iotexapi.GetAccountRe
 
 // GetActions returns actions
 func (svr *GRPCServer) GetActions(ctx context.Context, in *iotexapi.GetActionsRequest) (*iotexapi.GetActionsResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	var (
 		ret []*iotexapi.ActionInfo
 		err error
@@ -163,6 +189,11 @@ func (svr *GRPCServer) GetActions(ctx context.Context, in *iotexapi.GetActionsRe
 
 // GetBlockMetas returns block metadata
 func (svr *GRPCServer) GetBlockMetas(ctx context.Context, in *iotexapi.GetBlockMetasRequest) (*iotexapi.GetBlockMetasResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	var (
 		ret []*iotextypes.BlockMeta
 		err error
@@ -190,6 +221,11 @@ func (svr *GRPCServer) GetBlockMetas(ctx context.Context, in *iotexapi.GetBlockM
 
 // GetChainMeta returns blockchain metadata
 func (svr *GRPCServer) GetChainMeta(ctx context.Context, in *iotexapi.GetChainMetaRequest) (*iotexapi.GetChainMetaResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	chainMeta, syncStatus, err := svr.coreService.ChainMeta()
 	if err != nil {
 		return nil, err
@@ -199,6 +235,11 @@ func (svr *GRPCServer) GetChainMeta(ctx context.Context, in *iotexapi.GetChainMe
 
 // GetServerMeta gets the server metadata
 func (svr *GRPCServer) GetServerMeta(ctx context.Context, in *iotexapi.GetServerMetaRequest) (*iotexapi.GetServerMetaResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	packageVersion, packageCommitID, gitStatus, goVersion, buildTime := svr.coreService.ServerMeta()
 	return &iotexapi.GetServerMetaResponse{ServerMeta: &iotextypes.ServerMeta{
 		PackageVersion:  packageVersion,
@@ -211,6 +252,11 @@ func (svr *GRPCServer) GetServerMeta(ctx context.Context, in *iotexapi.GetServer
 
 // SendAction is the API to send an action to blockchain.
 func (svr *GRPCServer) SendAction(ctx context.Context, in *iotexapi.SendActionRequest) (*iotexapi.SendActionResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	span := tracer.SpanFromContext(ctx)
 	// tags output
 	span.SetAttributes(attribute.String("actType", fmt.Sprintf("%T", in.GetAction().GetCore())))
@@ -224,6 +270,11 @@ func (svr *GRPCServer) SendAction(ctx context.Context, in *iotexapi.SendActionRe
 
 // GetReceiptByAction gets receipt with corresponding action hash
 func (svr *GRPCServer) GetReceiptByAction(ctx context.Context, in *iotexapi.GetReceiptByActionRequest) (*iotexapi.GetReceiptByActionResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	actHash, err := hash.HexStringToHash256(in.ActionHash)
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -242,6 +293,11 @@ func (svr *GRPCServer) GetReceiptByAction(ctx context.Context, in *iotexapi.GetR
 
 // ReadContract reads the state in a contract address specified by the slot
 func (svr *GRPCServer) ReadContract(ctx context.Context, in *iotexapi.ReadContractRequest) (*iotexapi.ReadContractResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	from := in.CallerAddress
 	if from == action.EmptyAddress {
 		from = address.ZeroAddress
@@ -268,11 +324,21 @@ func (svr *GRPCServer) ReadContract(ctx context.Context, in *iotexapi.ReadContra
 
 // ReadState reads state on blockchain
 func (svr *GRPCServer) ReadState(ctx context.Context, in *iotexapi.ReadStateRequest) (*iotexapi.ReadStateResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	return svr.coreService.ReadState(string(in.ProtocolID), in.GetHeight(), in.MethodName, in.Arguments)
 }
 
 // EstimateGasForAction estimates gas for action
 func (svr *GRPCServer) EstimateGasForAction(ctx context.Context, in *iotexapi.EstimateGasForActionRequest) (*iotexapi.EstimateGasForActionResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	estimateGas, err := svr.coreService.EstimateGasForAction(in.Action)
 	if err != nil {
 		return nil, err
@@ -282,6 +348,11 @@ func (svr *GRPCServer) EstimateGasForAction(ctx context.Context, in *iotexapi.Es
 
 // EstimateActionGasConsumption estimate gas consume for action without signature
 func (svr *GRPCServer) EstimateActionGasConsumption(ctx context.Context, in *iotexapi.EstimateActionGasConsumptionRequest) (*iotexapi.EstimateActionGasConsumptionResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	if in.GetExecution() != nil {
 		callerAddr, err := address.FromString(in.GetCallerAddress())
 		if err != nil {
@@ -371,6 +442,11 @@ func (svr *GRPCServer) EstimateActionGasConsumption(ctx context.Context, in *iot
 
 // GetEpochMeta gets epoch metadata
 func (svr *GRPCServer) GetEpochMeta(ctx context.Context, in *iotexapi.GetEpochMetaRequest) (*iotexapi.GetEpochMetaResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	epochData, numBlks, blockProducersInfo, err := svr.coreService.EpochMeta(in.EpochNumber)
 	if err != nil {
 		return nil, err
@@ -384,6 +460,11 @@ func (svr *GRPCServer) GetEpochMeta(ctx context.Context, in *iotexapi.GetEpochMe
 
 // GetRawBlocks gets raw block data
 func (svr *GRPCServer) GetRawBlocks(ctx context.Context, in *iotexapi.GetRawBlocksRequest) (*iotexapi.GetRawBlocksResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	ret, err := svr.coreService.RawBlocks(in.StartHeight, in.Count, in.WithReceipts, in.WithTransactionLogs)
 	if err != nil {
 		return nil, err
@@ -393,6 +474,11 @@ func (svr *GRPCServer) GetRawBlocks(ctx context.Context, in *iotexapi.GetRawBloc
 
 // GetLogs get logs filtered by contract address and topics
 func (svr *GRPCServer) GetLogs(ctx context.Context, in *iotexapi.GetLogsRequest) (*iotexapi.GetLogsResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	if in.GetFilter() == nil {
 		return nil, status.Error(codes.InvalidArgument, "empty filter")
 	}
@@ -432,16 +518,31 @@ func (svr *GRPCServer) GetLogs(ctx context.Context, in *iotexapi.GetLogsRequest)
 
 // StreamBlocks streams blocks
 func (svr *GRPCServer) StreamBlocks(in *iotexapi.StreamBlocksRequest, stream iotexapi.APIService_StreamBlocksServer) error {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	return svr.coreService.StreamBlocks(stream)
 }
 
 // StreamLogs streams logs that match the filter condition
 func (svr *GRPCServer) StreamLogs(in *iotexapi.StreamLogsRequest, stream iotexapi.APIService_StreamLogsServer) error {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	return svr.coreService.StreamLogs(in.GetFilter(), stream)
 }
 
 // GetElectionBuckets returns the native election buckets.
 func (svr *GRPCServer) GetElectionBuckets(ctx context.Context, in *iotexapi.GetElectionBucketsRequest) (*iotexapi.GetElectionBucketsResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	ret, err := svr.coreService.ElectionBuckets(in.GetEpochNum())
 	if err != nil {
 		return nil, err
@@ -451,16 +552,31 @@ func (svr *GRPCServer) GetElectionBuckets(ctx context.Context, in *iotexapi.GetE
 
 // GetEvmTransfersByActionHash returns evm transfers by action hash
 func (svr *GRPCServer) GetEvmTransfersByActionHash(ctx context.Context, in *iotexapi.GetEvmTransfersByActionHashRequest) (*iotexapi.GetEvmTransfersByActionHashResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	return nil, status.Error(codes.Unimplemented, "evm transfer index is deprecated, call GetSystemLogByActionHash instead")
 }
 
 // GetEvmTransfersByBlockHeight returns evm transfers by block height
 func (svr *GRPCServer) GetEvmTransfersByBlockHeight(ctx context.Context, in *iotexapi.GetEvmTransfersByBlockHeightRequest) (*iotexapi.GetEvmTransfersByBlockHeightResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	return nil, status.Error(codes.Unimplemented, "evm transfer index is deprecated, call GetSystemLogByBlockHeight instead")
 }
 
 // GetTransactionLogByActionHash returns transaction log by action hash
 func (svr *GRPCServer) GetTransactionLogByActionHash(ctx context.Context, in *iotexapi.GetTransactionLogByActionHashRequest) (*iotexapi.GetTransactionLogByActionHashResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	ret, err := svr.coreService.TransactionLogByActionHash(in.ActionHash)
 	if err != nil {
 		return nil, err
@@ -472,6 +588,11 @@ func (svr *GRPCServer) GetTransactionLogByActionHash(ctx context.Context, in *io
 
 // GetTransactionLogByBlockHeight returns transaction log by block height
 func (svr *GRPCServer) GetTransactionLogByBlockHeight(ctx context.Context, in *iotexapi.GetTransactionLogByBlockHeightRequest) (*iotexapi.GetTransactionLogByBlockHeightResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	blockIdentifier, transactionLogs, err := svr.coreService.TransactionLogByBlockHeight(in.BlockHeight)
 	if err != nil {
 		return nil, err
@@ -484,6 +605,11 @@ func (svr *GRPCServer) GetTransactionLogByBlockHeight(ctx context.Context, in *i
 
 // GetActPoolActions returns the all Transaction Identifiers in the mempool
 func (svr *GRPCServer) GetActPoolActions(ctx context.Context, in *iotexapi.GetActPoolActionsRequest) (*iotexapi.GetActPoolActionsResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	ret, err := svr.coreService.ActPoolActions(in.ActionHashes)
 	if err != nil {
 		return nil, err
@@ -495,6 +621,11 @@ func (svr *GRPCServer) GetActPoolActions(ctx context.Context, in *iotexapi.GetAc
 
 // ReadContractStorage reads contract's storage
 func (svr *GRPCServer) ReadContractStorage(ctx context.Context, in *iotexapi.ReadContractStorageRequest) (*iotexapi.ReadContractStorageResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	addr, err := address.FromString(in.GetContract())
 	if err != nil {
 		return nil, status.Error(codes.InvalidArgument, err.Error())
@@ -508,6 +639,11 @@ func (svr *GRPCServer) ReadContractStorage(ctx context.Context, in *iotexapi.Rea
 
 // TraceTransactionStructLogs get trace transaction struct logs
 func (svr *GRPCServer) TraceTransactionStructLogs(ctx context.Context, in *iotexapi.TraceTransactionStructLogsRequest) (*iotexapi.TraceTransactionStructLogsResponse, error) {
+	defer func() {
+		if r := recover(); r != nil {
+			recovery.CrashLog(r, "/var/log")
+		}
+	}()
 	actInfo, err := svr.coreService.Action(util.Remove0xPrefix(in.GetActionHash()), false)
 	if err != nil {
 		return nil, err
